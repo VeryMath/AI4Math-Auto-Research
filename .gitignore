@@ -1,0 +1,21 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local Agent Laboratory deployments and generated research workspaces.
+external/
+codex_research/
+.ai4math_runs/
+MATH_research_dir/
+state_saves/
+
+# Local environment files and secrets.
+.env
+.env.*
+!.env.example
+
+# macOS/editor noise.
+.DS_Store
+*.swp
