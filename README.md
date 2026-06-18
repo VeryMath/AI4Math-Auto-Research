@@ -1,5 +1,7 @@
 # Discover Math Problems
 
+Chinese guide: [README.zh-CN.md](README.zh-CN.md)
+
 `discover-math-problems` is an AI4Math Skill-as-adapter package for mathematical
 problem discovery and conjecture generation. It helps a coding agent turn fuzzy
 background, scattered notes, failed proof attempts, and immature theorem ideas
