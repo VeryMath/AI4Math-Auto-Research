@@ -8,15 +8,20 @@ background, scattered notes, failed proof attempts, and immature theorem ideas
 into a ranked problem menu, conjecture lattice, evidence ledger, counterexample
 pressure, proof obligations, and a resumable research-state packet.
 
-Use this before theorem proving when the user does not yet know which
-mathematical problem should be pursued.
+Use this when a user wants a standalone research-state builder for
+mathematical problem discovery. No other AI4Math skill is required to start.
 
-## AI4Math Role
+## What This Skill Does
 
-This skill is the conjecture-generation and research-state layer in the AI4Math
-stack. It converts background knowledge into candidate problems, conjecture
-lattices, evidence ledgers, counterexample pressure, and proof obligations
-before any proving or formal verification skill is asked to certify a result.
+This standalone skill helps a coding agent:
+
+- turn fuzzy mathematical background into explicit objects, assumptions, and examples;
+- rank candidate problems instead of committing to the first plausible theorem;
+- build conjecture lattices and pressure-test them with toy models and counterexamples;
+- record evidence, uncertainty, proof obligations, and a resumable research-state packet.
+
+Use it directly when you have notes, definitions, failed attempts, or an open-ended
+research direction and want the agent to organize the next mathematical questions.
 
 ## What You Install Or Load
 
@@ -36,7 +41,8 @@ Core files:
 
 ## Installation / Loading
 
-Use from a checkout first. Ask the coding agent to read:
+Clone or open this skill repository in your coding-agent environment. Then ask
+the coding agent to read:
 
 ```text
 AGENTS.md
@@ -49,7 +55,7 @@ into that agent's Skill path and reload the agent if needed.
 Codex example:
 
 ```bash
-ln -s "$PWD/skills/discover-math-problems" ~/.codex/skills/discover-math-problems
+ln -s "$PWD" ~/.codex/skills/discover-math-problems
 ```
 
 Platform notes live in `CLAUDE.md`, `GEMINI.md`, `.codex/INSTALL.md`, and
@@ -62,7 +68,7 @@ Use $discover-math-problems.
 
 I have background notes and a few immature theorem ideas. Build a research state,
 rank candidate problems, generate a conjecture lattice, pressure-test the
-strongest candidates, and produce proof obligations suitable for theorem proving.
+strongest candidates, and produce proof obligations for later review.
 ```
 
 Useful inputs include domain background, source notes, definitions, examples,
@@ -81,7 +87,7 @@ background or immature idea
   -> evidence ledger and counterexample pressure
   -> proof obligations
   -> approve / revise / reject / skip
-  -> handoff to proving or next discovery pass
+  -> next discovery pass or final research-state packet
 ```
 
 Use `approve` to run the proposed next discovery step, `revise` to adjust the
@@ -110,18 +116,6 @@ Status labels should stay honest: `background_map`, `candidate_problem_menu`,
 `candidate_conjecture`, `stress_tested_conjecture`, `proof_obligations_ready`,
 or `verification_ready`. `verification_ready` means ready for verification work,
 not already verified. Never call a conjecture a theorem.
-
-## Handoff
-
-When a candidate reaches `proof_obligations_ready` or `verification_ready`, hand
-the obligation packet to `rethlas-proving` for proof blueprint,
-verifier-style review, repair hints, and acceptance-gate handling.
-
-Send invariant or counterexample evidence tasks to `invariant-computation`,
-optimization-shaped tasks to `optimization-modeling` or
-`cdopt-optimization`, experiment-shaped checks to
-`scientific-computing-reproduction`, and measurable evaluator
-searches to `openevolve-experiment-workflow`.
 
 ## Maintainer Checks
 
