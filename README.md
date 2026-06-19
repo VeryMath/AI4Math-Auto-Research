@@ -114,14 +114,14 @@ not already verified. Never call a conjecture a theorem.
 ## Handoff
 
 When a candidate reaches `proof_obligations_ready` or `verification_ready`, hand
-the obligation packet to `agentic-rethlas-proving` for proof blueprint,
+the obligation packet to `rethlas-proving` for proof blueprint,
 verifier-style review, repair hints, and acceptance-gate handling.
 
-Send invariant or counterexample evidence tasks to `AI4Math-Invariant-Computing`,
-optimization-shaped tasks to `AI4Math-Optimization` or
-`AI4Math-Optimization-cdopt-skill`, experiment-shaped checks to
-`scientific-computing-reproduction-auto-tuning`, and measurable evaluator
-searches to `AI4Math-Evolving-Skill`.
+Send invariant or counterexample evidence tasks to `invariant-computation`,
+optimization-shaped tasks to `optimization-modeling` or
+`cdopt-optimization`, experiment-shaped checks to
+`scientific-computing-reproduction`, and measurable evaluator
+searches to `openevolve-experiment-workflow`.
 
 ## Maintainer Checks
 

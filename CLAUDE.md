@@ -16,4 +16,4 @@ Skill layer: `SKILL.md`.
 ## Boundary
 
 Do not run theorem proving from this adapter. Handoff proof-ready obligations to
-`agentic-rethlas-proving`.
+`rethlas-proving`.

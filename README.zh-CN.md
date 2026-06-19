@@ -8,7 +8,7 @@ Skill-as-adapter package。它让 coding agent 把模糊背景、零散笔记、
 counterexample pressure、proof obligations 和可恢复的 research-state packet。
 
 当用户还不知道应该推进哪个数学问题时，先用这个 Skill；进入证明阶段后，再交给
-`agentic-rethlas-proving`。
+`rethlas-proving`。
 
 ## AI4Math 角色
 
@@ -92,13 +92,13 @@ verified。不要把 conjecture 叫成 theorem。
 ## 交接
 
 当候选达到 `proof_obligations_ready` 或 `verification_ready`，把 obligation packet
-交给 `agentic-rethlas-proving`，由它负责 proof blueprint、verifier-style review、
+交给 `rethlas-proving`，由它负责 proof blueprint、verifier-style review、
 repair hints 和 acceptance gate。
 
-不变量或反例证据任务交给 `AI4Math-Invariant-Computing`；优化型任务交给
-`AI4Math-Optimization` 或 `AI4Math-Optimization-cdopt-skill`；实验型检查交给
-`scientific-computing-reproduction-auto-tuning`；有明确 evaluator 和 metric 的搜索交给
-`AI4Math-Evolving-Skill`。
+不变量或反例证据任务交给 `invariant-computation`；优化型任务交给
+`optimization-modeling` 或 `cdopt-optimization`；实验型检查交给
+`scientific-computing-reproduction`；有明确 evaluator 和 metric 的搜索交给
+`openevolve-experiment-workflow`。
 
 ## 维护检查
 
