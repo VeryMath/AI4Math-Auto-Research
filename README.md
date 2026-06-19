@@ -41,25 +41,17 @@ Core files:
 
 ## Installation / Loading
 
-Clone or open this skill repository in your coding-agent environment. Then ask
-the coding agent to read:
+### One-line Agent Install
+
+Copy this to your coding agent:
 
 ```text
-AGENTS.md
-SKILL.md
+Please install the `discover-math-problems` skill from https://github.com/VeryMath/AI4Math-Auto-Research.git (branch: codex/discover-math-problems-skill). Read `.agent.md`, install the declared Skill entrypoint, verify that `$discover-math-problems` is discoverable, and tell me whether I need to restart the agent.
 ```
 
-If the target agent supports local Skill discovery, install or link this folder
-into that agent's Skill path and reload the agent if needed.
-
-Codex example:
-
-```bash
-ln -s "$PWD" ~/.codex/skills/discover-math-problems
-```
-
-Platform notes live in `CLAUDE.md`, `GEMINI.md`, `.codex/INSTALL.md`, and
-`.opencode/INSTALL.md`.
+If you already have this skill repository locally, replace the repository URL
+with the local folder path. The coding agent should handle cloning, linking,
+configuration, reload/restart checks, and verification.
 
 ## Quick Start
 
