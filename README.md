@@ -2,28 +2,22 @@
 
 Chinese guide: [README.zh-CN.md](README.zh-CN.md)
 
-`discover-math-problems` is an AI4Math Skill-as-adapter package for mathematical
-problem discovery and conjecture generation. It helps a coding agent turn fuzzy
-background, scattered notes, failed proof attempts, and immature theorem ideas
-into a ranked problem menu, conjecture lattice, evidence ledger, counterexample
-pressure, proof obligations, and a resumable research-state packet.
+`discover-math-problems` helps a coding agent turn fuzzy mathematical background into a concrete research-state packet.
 
-Use this when a user wants a standalone research-state builder for
-mathematical problem discovery. No other AI4Math skill is required to start.
+## When To Use It
 
-## What This Skill Does
+Use this skill when you have:
 
-This standalone skill helps a coding agent:
+- scattered notes, definitions, examples, or failed proof attempts;
+- an open-ended mathematical direction but no clear problem ranking;
+- immature theorem ideas that need counterexample pressure before proof work;
+- a need for a resumable record of conjectures, evidence, and uncertainty.
 
-- turn fuzzy mathematical background into explicit objects, assumptions, and examples;
-- rank candidate problems instead of committing to the first plausible theorem;
-- build conjecture lattices and pressure-test them with toy models and counterexamples;
-- record evidence, uncertainty, proof obligations, and a resumable research-state packet.
+## What It Produces
 
-Use it directly when you have notes, definitions, failed attempts, or an open-ended
-research direction and want the agent to organize the next mathematical questions.
+The agent should produce ranked problem menus, conjecture lattices, evidence ledgers, counterexample pressure notes, proof obligations, work orders, and a `research_state_packet`.
 
-## What You Install Or Load
+## Skill Entry Points
 
 Load the repository root when using this as a standalone package:
 
@@ -39,9 +33,7 @@ Core files:
 - `references/conjecture-generation-protocol.md`: conjecture lattice and stress testing.
 - `references/artifact-contract.md`: artifact names, fields, and status labels.
 
-## Installation / Loading
-
-### One-line Agent Install
+## Installation
 
 Copy this to your coding agent:
 

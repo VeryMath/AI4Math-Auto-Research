@@ -2,28 +2,22 @@
 
 [English](README.md) | 简体中文
 
-`discover-math-problems` 是一个面向 AI4Math 的数学问题发现与猜想生成
-Skill-as-adapter package。它让 coding agent 把模糊背景、零散笔记、失败证明尝试
-和未成熟定理想法整理成 ranked problem menu、conjecture lattice、evidence ledger、
-counterexample pressure、proof obligations 和可恢复的 research-state packet。
+`discover-math-problems` 帮助 coding agent 把模糊数学背景整理成可继续推进的 research-state packet。
 
-当用户还不知道应该推进哪个数学问题时，可以直接使用这个独立 Skill；不需要先安装其他
-AI4Math package。
+## 适合什么任务
 
-## 这个 Skill 做什么
+当你有这些输入时使用：
 
-这个独立 Skill 帮助 coding agent：
+- 零散笔记、定义、例子或失败证明尝试；
+- 有开放式研究方向，但还没有清晰的问题排序；
+- 未成熟 theorem ideas，需要先做反例压力和假设边界检查；
+- 希望留下可恢复的 conjectures、evidence 和 uncertainty 记录。
 
-- 从模糊背景中抽取数学对象、假设、例子和未知量；
-- 把候选问题排序，而不是直接锁定第一个看似合理的 theorem；
-- 生成 conjecture lattice，并用 toy model、反例压力和假设边界来检查；
-- 记录 evidence、uncertainty、proof obligations 和可恢复的 research-state packet。
+## 会产出什么
 
-当你有研究笔记、定义、失败证明尝试或开放式研究方向，希望 agent 先整理“值得研究什么”时，直接使用这个 Skill。
+Agent 应产出 ranked problem menu、conjecture lattice、evidence ledger、counterexample pressure notes、proof obligations、work orders 和 `research_state_packet`。
 
-## 安装 / 加载
-
-### 一句话安装
+## 安装
 
 把下面这句话发给你的 coding agent：
 
