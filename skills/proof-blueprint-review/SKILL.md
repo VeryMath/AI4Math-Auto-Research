@@ -1,22 +1,22 @@
 ---
-name: rethlas-proving
-description: "Use when Codex should work as a coding-agent-native Rethlas/Rethlab-style proving workflow: transform a candidate theorem, proof sketch, problem artifact, or proof_obligations into a proof blueprint, verifier-style report, repair hints, proof-obligation ledger patches, and a strict proof acceptance decision without treating API access as the default path."
+name: proof-blueprint-review
+description: "Use when Codex should work as a coding-agent-native proof planning and review workflow: transform a candidate theorem, proof sketch, problem artifact, or proof_obligations into a proof blueprint, verifier-style report, repair hints, proof-obligation ledger patches, and a strict proof acceptance decision without treating API access as the default path."
 ---
 
-# Agentic Rethlas Proving
+# Proof Blueprint Review
 
-This file is the shared Skill layer for the agentic Rethlas proving package.
+This file is the shared Skill layer for the proof blueprint review package.
 Keep platform adapters thin and route durable proof behavior back here and to
 the `references/` protocol files.
 
 ## Core Stance
 
-Act as a coding-agent coordinator for Rethlas/Rethlab-style proof generation and
+Act as a coding-agent coordinator for agent-mediated proof generation and
 verification. The agent reads the problem, writes a proof blueprint, performs or
 coordinates a verifier-style review, converts failures into repair hints and
 proof obligations, and reports proof status with strict evidence.
 
-This is not an API wrapper. External Rethlas, verifier services, or model APIs
+This is not an API wrapper. External verifier services or model APIs
 may be used when available and explicitly appropriate, but the primary workflow
 is agent-mediated and artifact-first.
 
@@ -65,7 +65,7 @@ Write durable artifacts whenever proof work is substantive:
 - `acceptance_gate.md`
 
 For the agent-mediated contract, read
-`references/agent-mediated-rethlas-protocol.md`.
+`references/agent-mediated-proof-protocol.md`.
 
 ## Proof Acceptance
 
@@ -95,7 +95,7 @@ Do not call `accepted_by_review` a verified proof.
 ## Reference Routing
 
 - For the full agent-mediated workflow, read
-  `references/agent-mediated-rethlas-protocol.md`.
+  `references/agent-mediated-proof-protocol.md`.
 - For proof blueprint generation, read `references/generation-agent.md`.
 - For verifier-style review, read `references/verification-agent.md`.
 - For final proof status, read `references/proof-acceptance-contract.md`.

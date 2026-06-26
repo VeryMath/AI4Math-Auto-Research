@@ -1,0 +1,4 @@
+interface:
+  display_name: "Proof Blueprint Review"
+  short_description: "Agent-native proof generation and verification"
+  default_prompt: "Use $proof-blueprint-review to turn my candidate theorem and proof obligations into a proof blueprint, verifier-style report, and repair plan."

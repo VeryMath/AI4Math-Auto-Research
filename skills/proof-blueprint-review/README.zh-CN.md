@@ -1,10 +1,10 @@
-# Agentic Rethlas Proving
+# Proof Blueprint Review
 
 [English](README.md) | 简体中文
 
-`rethlas-proving` 帮助 coding agent 围绕候选命题或证明草稿开展 proof-work session。
+`proof-blueprint-review` 帮助 coding agent 围绕候选命题或证明草稿开展 proof-work session。
 
-它不是默认 API wrapper。外部 Rethlas、verifier service 或模型 API 只在可用且明确有帮助时作为可选工具使用。
+它不是默认 API wrapper。外部 verifier service 或模型 API 只在可用且明确有帮助时作为可选工具使用。
 
 ## 适合什么任务
 
@@ -24,7 +24,7 @@ Agent 应产出 `problem_intake.md`、`proof_blueprint.md`、verifier-style revi
 把下面这句话发给你的 coding agent：
 
 ```text
-请帮我安装 `rethlas-proving` skill，链接是：https://github.com/VeryMath/AI4Math-Auto-Research.git。请读取包内 `SKILL.md`，安装其中声明的 Skill entrypoint，验证 `$rethlas-proving` 可用，并告诉我是否需要重启 agent。
+请帮我安装 `proof-blueprint-review` skill，链接是：https://github.com/VeryMath/AI4Math-Auto-Research.git。请读取包内 `SKILL.md`，安装其中声明的 Skill entrypoint，验证 `$proof-blueprint-review` 可用，并告诉我是否需要重启 agent。
 ```
 
 如果你已经有这个 skill 仓库的本地文件夹，把链接换成本地路径即可。clone、link、配置、reload/restart 检查和验证都交给 coding agent 处理。
@@ -32,7 +32,7 @@ Agent 应产出 `problem_intake.md`、`proof_blueprint.md`、verifier-style revi
 ## 快速开始
 
 ```text
-Use $rethlas-proving.
+Use $proof-blueprint-review.
 
 我有一个候选命题和 proof obligations。请先规范化 statement 和 assumptions，
 再写 proof_blueprint.md，做 verifier-style review，产出 repair_hints.md 和
@@ -85,7 +85,7 @@ accepted 之前，都应该先询问用户。
 修改后先检查 Skill 形状：
 
 ```bash
-python3 "${CODEX_HOME:-$HOME/.codex}/skills/.system/skill-creator/scripts/quick_validate.py" skills/agentic-rethlas-proving
+python3 "${CODEX_HOME:-$HOME/.codex}/skills/.system/skill-creator/scripts/quick_validate.py" skills/proof-blueprint-review
 ```
 
 父级 AI4Math Skill Library 中还有 repository-level adapter checks。

@@ -1,6 +1,6 @@
-# Agent-Mediated Rethlas Protocol
+# Agent-Mediated Proof Protocol
 
-This protocol distills a Rethlas/Rethlab-style generation and verification
+This protocol distills an agent-mediated generation and verification
 workflow into a coding-agent artifact process. It does not require API access by
 default.
 

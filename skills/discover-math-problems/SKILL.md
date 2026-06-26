@@ -52,8 +52,8 @@ Use strict status labels:
 Never call a conjecture a theorem. Never call a proof sketch verified. Keep
 external proof-tool execution outside this skill's status ladder.
 
-This skill does not run Rethlas, verifier agents, or external proof tools.
-Do not set up Rethlas or any external prover.
+This skill does not run verifier agents or external proof tools.
+Do not set up external provers from this discovery workflow.
 
 ## Artifact Contract
 
