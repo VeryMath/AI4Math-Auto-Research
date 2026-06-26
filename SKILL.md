@@ -17,7 +17,7 @@ scripts, and references.
   bounded Agent Laboratory auto-research runs.
 - `skills/discover-math-problems/`: convert fuzzy mathematical background into
   ranked problems, conjecture lattices, proof obligations, and work orders.
-- `skills/agentic-rethlas-proving/`: coordinate Rethlas/Rethlab-style proof
+- `skills/proof-blueprint-review/`: coordinate agent-mediated proof
   generation, verifier-style review, repair hints, and proof acceptance reports.
 
 ## Repository Boundary

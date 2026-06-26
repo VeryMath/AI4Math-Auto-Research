@@ -30,7 +30,7 @@ Use one of:
 Convert verifier feedback into proof obligations:
 
 - `patch_id`
-- `source`: `agentic_verification_feedback` or external verifier source
+- `source`: `verifier_feedback` or external verifier source
 - `candidate_problem_id`
 - `obligation`
 - `status`: usually `open`
