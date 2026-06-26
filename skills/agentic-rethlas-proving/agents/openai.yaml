@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agentic Rethlas Proving"
+  short_description: "Agent-native proof generation and verification"
+  default_prompt: "Use $rethlas-proving to turn my candidate theorem and proof obligations into a proof blueprint, verifier-style report, and repair plan."

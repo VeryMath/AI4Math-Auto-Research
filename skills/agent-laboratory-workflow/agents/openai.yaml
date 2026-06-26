@@ -1,0 +1,3 @@
+display_name: Agent Laboratory Workflow
+short_description: Hybrid Agent Laboratory and Codex-native Auto-Research for AI4Math.
+default_prompt: Use hybrid Auto-Research: ask for my research topic and API settings if needed, deploy and smoke-test Agent Laboratory when useful, launch the bounded research workflow, and if the upstream run stops early create a Codex research workspace and finish the remaining plan, experiment, interpretation, and report phases.

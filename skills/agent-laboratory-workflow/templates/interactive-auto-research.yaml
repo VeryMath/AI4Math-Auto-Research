@@ -1,0 +1,34 @@
+copilot_mode: False
+research-topic: "REPLACE_WITH_USER_RESEARCH_TOPIC"
+api-key: "OPENAI-API-KEY-HERE"
+llm-backend: "ecnu-plus"
+lit-review-backend: "ecnu-plus"
+language: "English"
+max-steps: 6
+num-papers-lit-review: 2
+num-papers-to-write: 1
+parallel-labs: False
+mlesolver-max-steps: 1
+papersolver-max-steps: 1
+lab-index: 0
+load-existing: False
+except-if-fail: False
+compile-latex: False
+task-notes:
+  literature-review:
+    - "Research mode is still a complete research process. Begin with literature review."
+    - "Search arXiv for the user research topic, identify relevant recent or foundational papers, and add exactly two papers to the literature review before moving on."
+    - "Summarize the research gap from those papers and connect it to the planned experiment."
+  plan-formulation:
+    - "Use the literature review to formulate a small but complete research plan."
+    - "State the research question, assumptions, variables, data source, baseline, success metric, and expected output files."
+  data-preparation:
+    - "Use local synthetic data or a tiny public dataset motivated by the literature review. Avoid large downloads and paid APIs."
+    - "Submit executable Python code quickly and print a concise data summary."
+  running-experiments:
+    - "Run one small experiment that tests the plan motivated by the literature review. Avoid multiprocessing, long training, and network calls."
+    - "Print final metrics clearly and save minimal outputs in the research directory."
+  results-interpretation:
+    - "Interpret the observed metrics in relation to the two reviewed papers and the research question."
+  report-writing:
+    - "Write a concise LaTeX report with related work, objective, method, result, limitation, and next step."

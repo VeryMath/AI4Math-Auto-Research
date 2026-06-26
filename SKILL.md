@@ -11,6 +11,15 @@ Concrete skills belong under `skills/<skill-name>/`. Before running a concrete
 workflow, open that package and follow its package-local `SKILL.md`, README,
 scripts, and references.
 
+## Packages
+
+- `skills/agent-laboratory-workflow/`: deploy, configure, validate, and launch
+  bounded Agent Laboratory auto-research runs.
+- `skills/discover-math-problems/`: convert fuzzy mathematical background into
+  ranked problems, conjecture lattices, proof obligations, and work orders.
+- `skills/agentic-rethlas-proving/`: coordinate Rethlas/Rethlab-style proof
+  generation, verifier-style review, repair hints, and proof acceptance reports.
+
 ## Repository Boundary
 
 - Keep root documentation concise and focused on routing.
