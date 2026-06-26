@@ -10,7 +10,9 @@ Skill packages live under `skills/<skill-name>/`.
 
 | Package | Purpose | Status |
 | --- | --- | --- |
-| `skills/` | Reserved for normalized auto-research skill packages. | Ready for imports |
+| `skills/agent-laboratory-workflow/` | Agent Laboratory deployment, validation, and bounded auto-research runs. | `README.md`, `SKILL.md` |
+| `skills/discover-math-problems/` | Turn fuzzy mathematical background into problem menus, conjectures, and work orders. | `README.md`, `SKILL.md` |
+| `skills/agentic-rethlas-proving/` | Rethlas/Rethlab-style proof blueprint, verification, and repair workflow. | `README.md`, `SKILL.md` |
 
 ## Usage
 

@@ -1,0 +1,32 @@
+copilot_mode: False
+research-topic: "Run a tiny reproducible auto-research smoke experiment: create a local synthetic numerical dataset, fit a one-parameter least-squares baseline, report the residual, and write a concise research note."
+api-key: "OPENAI-API-KEY-HERE"
+llm-backend: "ecnu-plus"
+lit-review-backend: "ecnu-plus"
+language: "English"
+max-steps: 3
+num-papers-lit-review: 0
+num-papers-to-write: 1
+parallel-labs: False
+mlesolver-max-steps: 1
+papersolver-max-steps: 1
+lab-index: 0
+load-existing: False
+except-if-fail: True
+compile-latex: False
+task-notes:
+  literature-review:
+    - "For this smoke test, do not search arXiv. Submit no papers and move on."
+  plan-formulation:
+    - "Submit a PLAN in the first or second response. The plan must use only a deterministic local synthetic dataset and a least-squares residual."
+    - "Do not call remote datasets, paid APIs, or large benchmarks during the generated experiment code."
+  data-preparation:
+    - "Ignore any generic instruction requiring HuggingFace. For this smoke test, create a small self-contained Python list or NumPy array locally."
+    - "Submit executable Python code quickly. The code must print the number of samples and assign all needed variables."
+  running-experiments:
+    - "Run only a deterministic least-squares or closed-form numerical calculation. No network, no API calls, no multiprocessing."
+    - "The generated code must print a final scalar metric named residual_mse."
+  results-interpretation:
+    - "Submit an INTERPRETATION quickly using the printed residual_mse."
+  report-writing:
+    - "Write a short LaTeX report. Keep it minimal and do not require external figures."
