@@ -1,0 +1,4 @@
+interface:
+  display_name: "Discover Math Problems"
+  short_description: "Generate problem menus and conjecture lattices"
+  default_prompt: "Use $discover-math-problems to turn my fuzzy mathematical background into a problem menu, conjecture lattice, proof obligations, and next work orders."
