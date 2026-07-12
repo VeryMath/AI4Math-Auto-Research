@@ -8,7 +8,7 @@ orchestration, and proof-blueprint review.
 [中文说明](README.zh-CN.md) · [Contributors](CONTRIBUTORS.md) · [Skill packages](#skill-packages) · [Installation](#installation) · [Quick start](#quick-start) · [References](#related-public-references) · [Security model](#security-and-scope)
 
 ![version](https://img.shields.io/badge/version-0.1.0-blue)
-![skills](https://img.shields.io/badge/skills-3-2ea44f)
+![skills](https://img.shields.io/badge/skills-4-2ea44f)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
 </div>
@@ -29,6 +29,7 @@ the task and follow its package-local instructions.
 | [`agent-laboratory-workflow`](skills/agent-laboratory-workflow/) | Deploy, validate, and launch bounded Agent Laboratory auto-research runs. | [`README`](skills/agent-laboratory-workflow/README.md) · [`SKILL`](skills/agent-laboratory-workflow/SKILL.md) |
 | [`discover-math-problems`](skills/discover-math-problems/) | Convert fuzzy background into ranked problems, conjecture lattices, evidence ledgers, and work orders. | [`README`](skills/discover-math-problems/README.md) · [`SKILL`](skills/discover-math-problems/SKILL.md) |
 | [`proof-blueprint-review`](skills/proof-blueprint-review/) | Build proof blueprints, run verifier-style reviews, record repair hints, and issue strict proof-status reports. | [`README`](skills/proof-blueprint-review/README.md) · [`SKILL`](skills/proof-blueprint-review/SKILL.md) |
+| [`rethlas-opencode-adapter`](skills/rethlas-opencode-adapter/) | Clone, patch, set up, and supervise FrenzyMath Rethlas runs through OpenCode. | [`README`](skills/rethlas-opencode-adapter/README.md) · [`SKILL`](skills/rethlas-opencode-adapter/SKILL.md) |
 
 ## Installation
 
@@ -43,6 +44,7 @@ Skill paths:
 - skills/agent-laboratory-workflow
 - skills/discover-math-problems
 - skills/proof-blueprint-review
+- skills/rethlas-opencode-adapter
 
 Steps:
 1. Clone or update the repository locally.
@@ -62,6 +64,7 @@ mkdir -p ~/.codex/skills
 ln -s "$PWD/skills/agent-laboratory-workflow" ~/.codex/skills/agent-laboratory-workflow
 ln -s "$PWD/skills/discover-math-problems" ~/.codex/skills/discover-math-problems
 ln -s "$PWD/skills/proof-blueprint-review" ~/.codex/skills/proof-blueprint-review
+ln -s "$PWD/skills/rethlas-opencode-adapter" ~/.codex/skills/rethlas-opencode-adapter
 ```
 
 If your agent uses a different local Skill directory, replace `~/.codex/skills` with that configured path.
@@ -93,6 +96,12 @@ For Agent Laboratory runs, start with:
 skills/agent-laboratory-workflow/SKILL.md
 ```
 
+For Rethlas through OpenCode, start with:
+
+```text
+skills/rethlas-opencode-adapter/SKILL.md
+```
+
 ## Repository Layout
 
 ```text
@@ -103,7 +112,8 @@ AI4Math-Auto-Research/
 └── skills/
     ├── agent-laboratory-workflow/
     ├── discover-math-problems/
-    └── proof-blueprint-review/
+    ├── proof-blueprint-review/
+    └── rethlas-opencode-adapter/
 ```
 
 Keep package-owned examples, prompts, scripts, references, and benchmark notes
