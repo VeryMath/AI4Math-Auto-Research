@@ -19,6 +19,8 @@ scripts, and references.
   ranked problems, conjecture lattices, proof obligations, and work orders.
 - `skills/proof-blueprint-review/`: coordinate agent-mediated proof
   generation, verifier-style review, repair hints, and proof acceptance reports.
+- `skills/rethlas-opencode-adapter/`: clone, patch, set up, and supervise
+  FrenzyMath Rethlas runs through OpenCode.
 
 ## Repository Boundary
 

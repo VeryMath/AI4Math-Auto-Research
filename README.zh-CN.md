@@ -7,7 +7,7 @@
 [English](README.md) · [贡献者](CONTRIBUTORS.md) · [技能包](#技能包) · [安装](#安装) · [快速开始](#快速开始) · [参考资料](#相关公开参考资料) · [安全边界](#安全边界)
 
 ![version](https://img.shields.io/badge/version-0.1.0-blue)
-![skills](https://img.shields.io/badge/skills-3-2ea44f)
+![skills](https://img.shields.io/badge/skills-4-2ea44f)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
 </div>
@@ -25,6 +25,7 @@
 | [`agent-laboratory-workflow`](skills/agent-laboratory-workflow/) | 部署、验证并启动有边界的 Agent Laboratory 自动研究运行。 | [`README`](skills/agent-laboratory-workflow/README.md) · [`SKILL`](skills/agent-laboratory-workflow/SKILL.md) |
 | [`discover-math-problems`](skills/discover-math-problems/) | 把模糊背景转为候选问题、猜想格、证据台账和后续工作单。 | [`README`](skills/discover-math-problems/README.md) · [`SKILL`](skills/discover-math-problems/SKILL.md) |
 | [`proof-blueprint-review`](skills/proof-blueprint-review/) | 生成证明蓝图、执行 verifier-style review、记录修复提示并给出严格证明状态。 | [`README`](skills/proof-blueprint-review/README.md) · [`SKILL`](skills/proof-blueprint-review/SKILL.md) |
+| [`rethlas-opencode-adapter`](skills/rethlas-opencode-adapter/) | 克隆、适配、配置并监督通过 OpenCode 运行的 FrenzyMath Rethlas。 | [`README`](skills/rethlas-opencode-adapter/README.md) · [`SKILL`](skills/rethlas-opencode-adapter/SKILL.md) |
 
 ## 安装
 
@@ -39,6 +40,7 @@ Skill 路径：
 - skills/agent-laboratory-workflow
 - skills/discover-math-problems
 - skills/proof-blueprint-review
+- skills/rethlas-opencode-adapter
 
 请执行：
 1. 本地 clone 或更新仓库。
@@ -58,6 +60,7 @@ mkdir -p ~/.codex/skills
 ln -s "$PWD/skills/agent-laboratory-workflow" ~/.codex/skills/agent-laboratory-workflow
 ln -s "$PWD/skills/discover-math-problems" ~/.codex/skills/discover-math-problems
 ln -s "$PWD/skills/proof-blueprint-review" ~/.codex/skills/proof-blueprint-review
+ln -s "$PWD/skills/rethlas-opencode-adapter" ~/.codex/skills/rethlas-opencode-adapter
 ```
 
 如果你的 agent 使用别的本地 Skill 目录，把 `~/.codex/skills` 替换成对应配置路径。
@@ -89,6 +92,12 @@ Agent Laboratory 运行从这里开始：
 skills/agent-laboratory-workflow/SKILL.md
 ```
 
+通过 OpenCode 运行 Rethlas 从这里开始：
+
+```text
+skills/rethlas-opencode-adapter/SKILL.md
+```
+
 ## 仓库结构
 
 ```text
@@ -99,7 +108,8 @@ AI4Math-Auto-Research/
 └── skills/
     ├── agent-laboratory-workflow/
     ├── discover-math-problems/
-    └── proof-blueprint-review/
+    ├── proof-blueprint-review/
+    └── rethlas-opencode-adapter/
 ```
 
 技能包自己的长示例、提示词、脚本、references 和 benchmark notes 应放在所属技能包内。
