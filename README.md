@@ -13,6 +13,11 @@ orchestration, and proof-blueprint review.
 
 </div>
 
+<p align="center">
+  If this project helps your work, please consider giving the repository a Star ⭐
+  <a href="https://github.com/VeryMath/AI4Math-Auto-Research"><img alt="GitHub stars" src="https://img.shields.io/github/stars/VeryMath/AI4Math-Auto-Research?style=social"></a>
+</p>
+
 ## What This Repository Is
 
 This repository is the AI4Math home for auto-research skills. It collects

@@ -12,6 +12,11 @@
 
 </div>
 
+<p align="center">
+  如果这个项目对你有帮助，欢迎为仓库点 Star ⭐
+  <a href="https://github.com/VeryMath/AI4Math-Auto-Research"><img alt="GitHub Stars" src="https://img.shields.io/github/stars/VeryMath/AI4Math-Auto-Research?style=social"></a>
+</p>
+
 ## 这个仓库是什么
 
 这个仓库是 AI4Math 自动研究方向的技能入口，收集用于把模糊数学意图转成结构化问题、有限预算研究运行和可复核证明计划的 Skill-as-adapter 包。
