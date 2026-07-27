@@ -1,0 +1,4 @@
+interface:
+  display_name: "QSkill Research Pipeline"
+  short_description: "Run the complete open-problem research and reporting pipeline"
+  default_prompt: "Use $qskill to run the literature, method, and candidate proof-framework pipeline for this mathematical problem."

@@ -1,0 +1,31 @@
+{
+  "skill": "literature-search",
+  "version": "1.0",
+  "trigger_prefix": "skill1:",
+  "input_schema": {
+    "type": "string",
+    "description": "数学公开问题或猜想的完整描述"
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "problem": {"type": "string"},
+      "domain": {"type": "string"},
+      "status": {"type": "string", "enum": ["open", "partially_solved", "solved"]},
+      "known_results": {"type": "array"},
+      "timeline": {"type": "array"},
+      "key_papers": {"type": "array"},
+      "open_difficulties": {"type": "array"},
+      "summary": {"type": "string"},
+      "references": {"type": "array"}
+    }
+  },
+  "report_format": {
+    "primary_path": "outputs/literature_reports/",
+    "fallback_path": "outputs/literature_reports/",
+    "markdown_template": "<slug>_文献调研报告_<date>.md",
+    "json_output": "<slug>_文献调研报告_<date>.json",
+    "auto_save": "required",
+    "dedup": "append _v2, _v3 suffix on collision"
+  }
+}

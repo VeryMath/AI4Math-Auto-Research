@@ -8,7 +8,7 @@ orchestration, and proof-blueprint review.
 [中文说明](README.zh-CN.md) · [Contributors](CONTRIBUTORS.md) · [Skill packages](#skill-packages) · [Installation](#installation) · [Quick start](#quick-start) · [References](#related-public-references) · [Security model](#security-and-scope)
 
 ![version](https://img.shields.io/badge/version-0.1.0-blue)
-![skills](https://img.shields.io/badge/skills-4-2ea44f)
+![skills](https://img.shields.io/badge/skills-7-2ea44f)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
 </div>
@@ -35,6 +35,9 @@ the task and follow its package-local instructions.
 | [`discover-math-problems`](skills/discover-math-problems/) | Convert fuzzy background into ranked problems, conjecture lattices, evidence ledgers, and work orders. | [`README`](skills/discover-math-problems/README.md) · [`SKILL`](skills/discover-math-problems/SKILL.md) |
 | [`proof-blueprint-review`](skills/proof-blueprint-review/) | Build proof blueprints, run verifier-style reviews, record repair hints, and issue strict proof-status reports. | [`README`](skills/proof-blueprint-review/README.md) · [`SKILL`](skills/proof-blueprint-review/SKILL.md) |
 | [`rethlas-opencode-adapter`](skills/rethlas-opencode-adapter/) | Clone, patch, set up, and supervise FrenzyMath Rethlas runs through OpenCode. | [`README`](skills/rethlas-opencode-adapter/README.md) · [`SKILL`](skills/rethlas-opencode-adapter/SKILL.md) |
+| [`graph-theory-researcher`](skills/graph-theory-researcher/) | Read graph-theory papers, select questions through user gates, run bounded research, and prepare verified LaTeX/PDF artifacts. | [`README`](skills/graph-theory-researcher/README.md) · [`SKILL`](skills/graph-theory-researcher/SKILL.md) |
+| [`extremal-graph-problem-suggester`](skills/extremal-graph-problem-suggester/) | Generate small-move candidate variants for extremal graph problems with citation, novelty, and feasibility checks. | [`README`](skills/extremal-graph-problem-suggester/README.md) · [`SKILL`](skills/extremal-graph-problem-suggester/SKILL.md) |
+| [`open-problem-research-pipeline`](skills/open-problem-research-pipeline/) | Run a staged literature-search, method-analysis, proof-framework, and report workflow for open mathematical problems. | [`README`](skills/open-problem-research-pipeline/README.md) · [`SKILL`](skills/open-problem-research-pipeline/SKILL.md) |
 
 ## Installation
 
@@ -50,6 +53,9 @@ Skill paths:
 - skills/discover-math-problems
 - skills/proof-blueprint-review
 - skills/rethlas-opencode-adapter
+- skills/graph-theory-researcher
+- skills/extremal-graph-problem-suggester
+- skills/open-problem-research-pipeline
 
 Steps:
 1. Clone or update the repository locally.
@@ -70,6 +76,9 @@ ln -s "$PWD/skills/agent-laboratory-workflow" ~/.codex/skills/agent-laboratory-w
 ln -s "$PWD/skills/discover-math-problems" ~/.codex/skills/discover-math-problems
 ln -s "$PWD/skills/proof-blueprint-review" ~/.codex/skills/proof-blueprint-review
 ln -s "$PWD/skills/rethlas-opencode-adapter" ~/.codex/skills/rethlas-opencode-adapter
+ln -s "$PWD/skills/graph-theory-researcher" ~/.codex/skills/graph-theory-researcher
+ln -s "$PWD/skills/extremal-graph-problem-suggester" ~/.codex/skills/extremal-graph-problem-suggester
+ln -s "$PWD/skills/open-problem-research-pipeline" ~/.codex/skills/open-problem-research-pipeline
 ```
 
 If your agent uses a different local Skill directory, replace `~/.codex/skills` with that configured path.
@@ -107,6 +116,14 @@ For Rethlas through OpenCode, start with:
 skills/rethlas-opencode-adapter/SKILL.md
 ```
 
+For the course-contributed graph-theory and open-problem workflows, start with:
+
+```text
+skills/graph-theory-researcher/SKILL.md
+skills/extremal-graph-problem-suggester/SKILL.md
+skills/open-problem-research-pipeline/SKILL.md
+```
+
 ## Repository Layout
 
 ```text
@@ -118,7 +135,10 @@ AI4Math-Auto-Research/
     ├── agent-laboratory-workflow/
     ├── discover-math-problems/
     ├── proof-blueprint-review/
-    └── rethlas-opencode-adapter/
+    ├── rethlas-opencode-adapter/
+    ├── graph-theory-researcher/
+    ├── extremal-graph-problem-suggester/
+    └── open-problem-research-pipeline/
 ```
 
 Keep package-owned examples, prompts, scripts, references, and benchmark notes
@@ -126,9 +146,15 @@ inside the package that owns them.
 
 ## Validation
 
-There is no root build step. When changing a package, validate its `SKILL.md`,
-README links, scripts, and package-local references. If you use Codex's local
-skill validator, run it against every changed package directory.
+Run:
+
+```bash
+python3 -m unittest discover -s tests -v
+bash skills/graph-theory-researcher/scripts/validate-skill.sh
+```
+
+If you use Codex's local skill validator, run it against every changed package
+directory.
 
 ## Related Public References
 

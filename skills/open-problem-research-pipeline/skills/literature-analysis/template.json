@@ -1,0 +1,53 @@
+{
+  "skill": "literature-analysis",
+  "version": "1.0",
+  "trigger_prefix": "skill2:",
+  "input_schema": {
+    "type": "object",
+    "description": "输入可以是 (1) literature-search的JSON文件路径；或 (2) 用户手动输入的文献列表文本",
+    "properties": {
+      "source_type": {
+        "type": "string",
+        "enum": ["from_literature_search", "manual_input"],
+        "description": "输入来源类型"
+      },
+      "json_path": {
+        "type": "string",
+        "description": "当 source_type=from_literature_search 时，指向 *.json 文件的路径"
+      },
+      "manual_papers": {
+        "type": "array",
+        "description": "当 source_type=manual_input 时，用户输入的文献列表"
+      }
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "source_problem": {"type": "string"},
+      "source_report": {"type": "string"},
+      "method_classification": {
+        "type": "object",
+        "properties": {
+          "combinatorial": {"type": "array"},
+          "algebraic": {"type": "array"},
+          "probabilistic": {"type": "array"},
+          "analytic": {"type": "array"},
+          "computational": {"type": "array"}
+        }
+      },
+      "innovation_flow": {"type": "array"},
+      "method_timeline": {"type": "array"},
+      "summary": {"type": "string"},
+      "cross_references": {"type": "array"}
+    }
+  },
+  "report_format": {
+    "primary_path": "outputs/literature_analysis_reports/",
+    "fallback_path": "outputs/literature_analysis_reports/",
+    "markdown_template": "<slug>_方法分析报告_<date>.md",
+    "json_output": "<slug>_方法分析报告_<date>.json",
+    "auto_save": "required",
+    "dedup": "append _v2, _v3 suffix on collision"
+  }
+}

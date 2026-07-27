@@ -1,0 +1,4 @@
+interface:
+  display_name: "Open Problem Literature Search"
+  short_description: "Build a source-verified open-problem literature report"
+  default_prompt: "Use $literature-search to verify the current literature and status of this mathematical problem."

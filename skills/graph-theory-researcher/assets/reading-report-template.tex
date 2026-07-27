@@ -1,0 +1,258 @@
+\documentclass[UTF8,11pt,a4paper,fontset=fandol]{ctexart}
+\usepackage{amsmath,amsthm,amssymb}
+\usepackage{booktabs,longtable}
+\usepackage[colorlinks=true,linkcolor=blue!55!black,urlcolor=blue!65!black,citecolor=green!45!black]{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{trees,positioning,shapes.geometric}
+\usepackage{enumitem}
+\usepackage[backend=biber,style=numeric,sorting=nyt]{biblatex}
+% 默认不加载书目。只有完成本次核验后，才可在导言区加入经过核验的 .bib，
+% 并把下列开关设为 true；未核验资源不得写入正式书目或正式引用。
+\newif\ifverifiedbibliography
+\verifiedbibliographyfalse
+
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0.35em}
+\setlist{nosep,leftmargin=2.2em}
+\newtheorem{theorem}{定理}[section]
+\newtheorem{lemma}[theorem]{引理}
+\newtheorem{proposition}[theorem]{命题}
+\newtheorem{corollary}[theorem]{推论}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{定义}
+\newtheorem{example}[theorem]{例}
+\newtheorem{question}[theorem]{问题}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{注}
+
+% 所有未替换字段统一使用 \Placeholder，便于人工和自动检查。
+\newcommand{\Placeholder}[1]{\textcolor{magenta!70!black}{[待填写：#1]}}
+\providecommand{\ReportTitle}{\Placeholder{报告标题}}
+\providecommand{\PaperTitle}{\Placeholder{论文标题}}
+\providecommand{\SourceStatus}{\Placeholder{来源层级、稳定标识与交叉核验状态}}
+% 参数：类别、作者/机构、题名、出版/版本元数据、稳定标识、核验来源、
+% 核验日期、定位信息、相关性与归属标签。
+\newcommand{\VerifiedResourceEntry}[9]{%
+  #1 & #2 & #3 & #4 & #5 & #6 & #7 & #8 & #9 \\
+}
+
+\title{\ReportTitle\\[0.4em]\large《\PaperTitle》}
+\author{报告人：\Placeholder{姓名}}
+\date{\today}
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+\section{基本信息与证据状态}
+\begin{description}[style=nextline]
+  \item[论文信息] \Placeholder{作者、标题、载体、年份、卷期页码与稳定标识符}
+  \item[来源状态] \SourceStatus
+  \item[核验记录] 逐项记录题名、作者、版本、定理编号和书目信息的核验来源及访问日期。
+  \item[证据标签] 区分“原文陈述”“独立来源确认”“报告者推断”；未核验内容不得写成事实。
+\end{description}
+
+\section{一句话概括与研究背景}
+\textbf{一句话概括：}本文针对\Placeholder{对象}上的\Placeholder{核心问题}，借助\Placeholder{关键方法}证明\Placeholder{主要结论}。\\
+说明问题的历史来源、所属分支、为何自然，以及它与代表性结果的关系；所有历史归属均附来源。
+
+\section{核心问题、主要结果与创新点}
+\begin{enumerate}
+  \item \textbf{核心问题：}\Placeholder{量词、图类、参数范围与目标结论}
+  \item \textbf{主要结果：}\Placeholder{按逻辑强弱列出定理及比较基线}
+  \item \textbf{创新点：}\Placeholder{新结论、方法、结构刻画或算法及归属标签}
+\end{enumerate}
+
+\section{定义、记号与前置知识}
+\begin{definition}
+设 $G=(V,E)$ 为有限简单图。此处依次定义全文真正使用的对象、参数和约定，并注明与原文是否一致。
+\end{definition}
+\begin{lemma}[\Placeholder{前置引理名称}]
+\Placeholder{准确的假设、结论、来源编号和调用位置}
+\end{lemma}
+
+\section{文章底层逻辑与核心思想}
+从“为何这个结论应当成立”出发，而非逐段复述。建议回答：
+\begin{enumerate}
+  \item 哪个结构障碍决定问题的难点？
+  \item 作者如何把全局目标转化为可控制的局部对象？
+  \item 哪个不变量、极值选择或分解机制推动论证？
+  \item 关键假设在哪一步不可替代；删除后会出现什么反例？
+\end{enumerate}
+
+\section{研究逻辑图}
+本图是第一层研究叙事，不替代下一节的定理依赖图。每条箭头应说明前一层如何迫使或支持后一层。
+\begin{center}
+\begin{tikzpicture}[
+  node distance=5mm and 2mm,
+  box/.style={draw,rounded corners,align=center,text width=0.15\textwidth,minimum height=13mm,font=\small},
+  link/.style={draw,-latex,thick}
+]
+\node[box] (motivation) {动机/已知问题\\\Placeholder{缺口与基线}};
+\node[box,right=of motivation] (structure) {定义/结构思想\\\Placeholder{对象与归约}};
+\node[box,right=of structure] (method) {技术方法\\\Placeholder{证明发动机}};
+\node[box,right=of method] (result) {主结果\\\Placeholder{准确结论}};
+\node[box,right=of result] (future) {紧性/后续问题\\\Placeholder{边界与开放方向}};
+\draw[link] (motivation) -- (structure);
+\draw[link] (structure) -- (method);
+\draw[link] (method) -- (result);
+\draw[link] (result) -- (future);
+\end{tikzpicture}
+\end{center}
+同一研究链必须提供可检索的文字 fallback：
+\begin{verbatim}
+动机/已知问题 -> 定义/结构思想 -> 技术方法
+-> 主结果 -> 紧性/后续问题
+\end{verbatim}
+
+\section{定理与证明依赖思维导图}
+下面的 TikZ 图展示至少两层依赖；实际报告应替换节点文字并保留箭头方向。
+\begin{center}
+\begin{tikzpicture}[
+  level distance=18mm,
+  level 1/.style={sibling distance=62mm},
+  level 2/.style={sibling distance=29mm},
+  every node/.style={draw,rounded corners,align=center,text width=31mm,minimum height=8mm,font=\small},
+  edge from parent/.style={draw,-latex}
+]
+\node {主定理\\（最终结论）}
+  child {node {结构定理\\（核心归约）}
+    child {node {引理 A\\局部结构}}
+    child {node {引理 B\\排除障碍}}}
+  child {node {计数/算法命题\\（完成估计）}
+    child {node {引理 C\\不变量}}
+    child {node {引理 D\\边界控制}}};
+\end{tikzpicture}
+\end{center}
+
+同一依赖关系必须另以文字树呈现，便于检索与无障碍阅读：
+\begin{verbatim}
+主定理（最终结论）
+|-- 结构定理（核心归约）
+|   |-- 引理 A：局部结构
+|   `-- 引理 B：排除障碍
+`-- 计数/算法命题（完成估计）
+    |-- 引理 C：不变量
+    `-- 引理 D：边界控制
+\end{verbatim}
+每条边补充“调用了什么结论”，并标记是否存在循环依赖或隐含前提。
+
+\section{主证明路线与技术瓶颈}
+\begin{enumerate}
+  \item \textbf{入口：}选择最小反例、极值对象、分解或归纳参数。
+  \item \textbf{归约：}说明如何进入结构定理适用的情形。
+  \item \textbf{核心推进：}逐项核对量词、假设和边界条件。
+  \item \textbf{收束：}明确矛盾来自哪里，或构造如何满足全部结论。
+  \item \textbf{技术瓶颈：}指出最难估计/构造及常见误读；给出可复核的细节。
+\end{enumerate}
+
+\section{例子、反例、边界情形与紧性}
+至少包含：一个最小正例、一个说明假设必要性的反例、参数取极值时的边界情形，以及达到等号的紧性例子。逐个验证全部假设；“未找到反例”不等于证明。
+
+\section{经典图论方法}
+先用简表索引，再为每种方法复制下方详解条目。证据标签只能写“原文明确”或“分析推断”，并附定位；已核验资源只填本次核验记录键。
+\begin{longtable}{p{0.25\textwidth}p{0.18\textwidth}p{0.46\textwidth}}
+\toprule
+方法名与标准术语 & 证据标签 & 本文角色 \\
+\midrule
+\endfirsthead
+\toprule
+方法名与标准术语 & 证据标签 & 本文角色 \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+\Placeholder{中文名；English standard term} & \Placeholder{原文明确/分析推断；页码或定理号} & \Placeholder{在证明链中的作用} \\
+\end{longtable}
+
+\subsection*{逐方法详解（每种方法复制一份）}
+\begin{description}[style=nextline]
+  \item[方法名与标准术语] \Placeholder{中文名与 English standard term}
+  \item[证据标签] \Placeholder{原文明确/分析推断；具体定位及推断依据}
+  \item[核心思想] \Placeholder{不超过三句的证明发动机}
+  \item[识别信号] \Placeholder{看到哪些结构、参数或障碍时应想到它}
+  \item[本文逐步用法] \Placeholder{步骤一、二、三；分别输入什么并产出什么}
+  \item[假设局限] \Placeholder{必要前提、参数边界与失效情形}
+  \item[小例子] \Placeholder{最小图上的完整演示}
+  \item[常见失败或误读] \Placeholder{错误用法、遗漏假设及修正}
+  \item[迁移问题] \Placeholder{可迁移到哪个相邻问题，需改哪些条件}
+  \item[已核验资源] \Placeholder{核验记录键、定位信息与核验日期}
+\end{description}
+
+\section{真实可核验的延伸学习资源}
+按“原论文引用”“独立找到的学习资源”“报告者推荐”分组。只有完成本次核验后，才可用 \verb|\VerifiedResourceEntry| 填入下表，并将同一元数据写入单独的正式 \texttt{.bib}。每条必须记录核验来源、核验日期、定位信息和相关性；未核验资源不得写入正式书目或正式引用。
+
+\begingroup
+\tiny
+\setlength{\tabcolsep}{1.2pt}
+\begin{longtable}{p{0.06\textwidth}p{0.08\textwidth}p{0.10\textwidth}p{0.11\textwidth}p{0.10\textwidth}p{0.10\textwidth}p{0.07\textwidth}p{0.09\textwidth}p{0.11\textwidth}}
+\toprule
+类别 & 作者/机构 & 题名 & 出版/版本元数据 & 稳定标识 & 核验来源 & 核验日期 & 定位信息 & 相关性/归属 \\
+\midrule
+\endfirsthead
+\toprule
+类别 & 作者/机构 & 题名 & 出版/版本元数据 & 稳定标识 & 核验来源 & 核验日期 & 定位信息 & 相关性/归属 \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+\VerifiedResourceEntry{\Placeholder{类别}}{\Placeholder{作者/机构}}{\Placeholder{题名}}{\Placeholder{版本元数据}}{\Placeholder{稳定标识}}{\Placeholder{交叉核验页面}}{\Placeholder{实际访问日}}{\Placeholder{页码/章节/定理}}{\Placeholder{相关性与归属标签}}
+\end{longtable}
+\endgroup
+无法访问、元数据冲突、不完整或疑似虚构的条目移入“未确认事项”。默认书目为空；不得为了填满模板而补造条目。
+
+\section{分层阅读建议}
+\begin{description}
+  \item[快速浏览] 摘要、主定理、核心图示和结论；目标是复述问题与贡献。
+  \item[结构阅读] 沿依赖树读取定义和关键引理；目标是解释证明发动机。
+  \item[证明审计] 核对量词、假设、边界、等号情形与每次引用；目标是独立复现。
+  \item[研究准备] 复现计算、追踪最近文献、改动一个假设；目标是形成可执行问题。
+\end{description}
+
+\section{后续研究问题目录}
+候选问题按综合优先级从高到低排列。每题必须完整填写下方全部字段，不得只在汇总表中给分。四维评分均为 1 至 5：可行性 $F$、创新性 $I$、风险 $R$、方法准备度 $M$。综合排序公式为
+\[
+  P=0.30F+0.30I+0.20(6-R)+0.20M.
+\]
+四个维度都必须给出证据理由，并按 $P$ 降序排列；同分时优先风险较低者。
+\begingroup
+\setlength{\tabcolsep}{2pt}
+\begin{longtable}{p{0.08\textwidth}p{0.40\textwidth}p{0.10\textwidth}p{0.10\textwidth}p{0.10\textwidth}p{0.10\textwidth}}
+\toprule
+排名 & 候选问题 & $F$ & $I$ & $R$ & $M$ \\
+\midrule
+\endfirsthead
+\toprule
+排名 & 候选问题 & $F$ & $I$ & $R$ & $M$ \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+\Placeholder{名次} & \Placeholder{问题短名} & \Placeholder{1--5} & \Placeholder{1--5} & \Placeholder{1--5} & \Placeholder{1--5} \\
+\end{longtable}
+\endgroup
+
+\subsection*{候选问题详解（每题复制一份）}
+\begin{description}[style=nextline]
+  \item[动机] \Placeholder{为什么自然、有价值且现在值得做}
+  \item[精确定式] \Placeholder{图类、量词、参数、假设与目标结论}
+  \item[与原文关系] \Placeholder{推广、弱化假设、反向、紧性或新参数；对应定位}
+  \item[可行性] \Placeholder{$F$ 分数、证据与关键依赖}
+  \item[创新性] \Placeholder{$I$ 分数、证据；不得把未检出写成新颖性证明}
+  \item[风险] \Placeholder{$R$ 分数、主要失败模式与缓解办法}
+  \item[方法准备度] \Placeholder{$M$ 分数、已掌握工具与缺口}
+  \item[所需方法] \Placeholder{具体方法文本：输入、步骤、预期输出及准备材料}
+  \item[文献检索需求与计划] \Placeholder{数据库、查询词、同义词、引用链、日期与上限}
+  \item[计算计划] \Placeholder{穷举/采样范围、图约定、软件版本、命令、seed 与日志}
+  \item[likely stopping conditions] \Placeholder{证成、反例、预算耗尽、缺源或需改变问题}
+  \item[综合排序公式] $P=0.30F+0.30I+0.20(6-R)+0.20M=\Placeholder{代入值与结果}$。
+\end{description}
+按 $P$ 降序排列，同分时风险较低者优先；每一分均给证据理由。每个问题必须可被用户选择或改写；在用户批准前不得启动研究阶段。
+
+\section{未确认事项}
+列出仍待核验的原文版本、证明跳步、术语翻译、资源元数据和推断。每项注明：为何未确认、已查范围、下一步验证方式，以及它会影响哪些结论。
+
+\ifverifiedbibliography
+  \printbibliography[title={正式核验书目}]
+\fi
+\end{document}

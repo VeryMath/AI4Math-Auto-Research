@@ -1,0 +1,70 @@
+{
+  "skill": "literature-proof-framework",
+  "version": "1.0",
+  "trigger_prefix": "skill3:",
+  "input_schema": {
+    "type": "object",
+    "description": "输入可以是 (1) literature-analysis的JSON文件路径；或 (2) 用户手动输入的方法分析信息",
+    "properties": {
+      "source_type": {
+        "type": "string",
+        "enum": ["from_literature_analysis", "manual_input"]
+      },
+      "json_path": {
+        "type": "string",
+        "description": "当 source_type=from_literature_analysis 时，指向 *.json 文件路径"
+      },
+      "manual_methods": {
+        "type": "object",
+        "description": "当 source_type=manual_input 时，用户输入的方法分析信息"
+      }
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "source_problem": {"type": "string"},
+      "source_analysis": {"type": "string"},
+      "frameworks": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {"type": "string"},
+            "type": {"type": "string", "enum": ["改进型", "融合型", "降维型", "突破型", "分治型"]},
+            "core_idea": {"type": "string"},
+            "depends_on": {"type": "array"},
+            "logic_chain": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "step": {"type": "integer"},
+                  "action": {"type": "string"},
+                  "evidence": {"type": "string"}
+                }
+              }
+            },
+            "key_difficulty": {"type": "string"},
+            "feasibility": {"type": "string", "enum": ["高", "中", "低"]},
+            "feasibility_reason": {"type": "string"},
+            "predicted_outcome": {"type": "string"},
+            "strengths": {"type": "array"},
+            "weaknesses": {"type": "array"}
+          }
+        }
+      },
+      "framework_comparison": {"type": "array"},
+      "recommendation": {"type": "string"},
+      "summary": {"type": "string"}
+    }
+  },
+  "report_format": {
+    "primary_path": "outputs/literature_proof_reports/",
+    "fallback_path": "outputs/literature_proof_reports/",
+    "markdown_template": "<slug>_证明框架报告_<date>.md",
+    "json_output": "<slug>_证明框架报告_<date>.json",
+    "auto_save": "required",
+    "dedup": "append _v2, _v3 suffix on collision"
+  }
+}

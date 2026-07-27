@@ -1,0 +1,4 @@
+interface:
+  display_name: "Literature Method Analysis"
+  short_description: "Extract and compare methods from verified mathematical papers"
+  default_prompt: "Use $literature-analysis to compare the methods in this verified paper set."
