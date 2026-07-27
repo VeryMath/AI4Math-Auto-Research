@@ -1,0 +1,12 @@
+schema_version: 1
+course:
+  id: 2026-summer-ai-research-practice-math
+  name_zh: 人工智能赋能科研实践（数学）
+contributor:
+  display_name: Xiaowen Zhang
+source:
+  submission_id: course-2026-graph-theory-researcher
+  sha256: 5a264d4ecf916060d86c4aef32f9686f8c0b7c8e7b45defd69b413fe442aa289
+license: MIT
+license_decision: course-maintainer-approved
+normalization_record: NORMALIZATION.md

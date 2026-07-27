@@ -1,0 +1,4 @@
+interface:
+  display_name: "Graph Theory Researcher"
+  short_description: "Read graph theory papers and develop verified follow-up research"
+  default_prompt: "Use $graph-theory-researcher to read this graph theory paper, produce a rigorous PDF report, and propose ranked follow-up questions."

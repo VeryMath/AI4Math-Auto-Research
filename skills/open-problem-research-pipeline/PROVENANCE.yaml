@@ -1,0 +1,12 @@
+schema_version: 1
+course:
+  id: 2026-summer-ai-research-practice-math
+  name_zh: 人工智能赋能科研实践（数学）
+contributor:
+  display_name: Quan Sun
+source:
+  submission_id: course-2026-open-problem-research-pipeline
+  sha256: 9186e7ffc85a74423504e827c04d9649beb5714eba496e369dd2872b9f287f59
+license: MIT
+license_decision: course-maintainer-approved
+normalization_record: NORMALIZATION.md

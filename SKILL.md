@@ -21,6 +21,12 @@ scripts, and references.
   generation, verifier-style review, repair hints, and proof acceptance reports.
 - `skills/rethlas-opencode-adapter/`: clone, patch, set up, and supervise
   FrenzyMath Rethlas runs through OpenCode.
+- `skills/graph-theory-researcher/`: stage graph-theory reading, question
+  selection, bounded research, verification, and LaTeX/PDF delivery.
+- `skills/extremal-graph-problem-suggester/`: generate small-move candidate
+  variants for extremal graph problems with evidence-status checks.
+- `skills/open-problem-research-pipeline/`: route a literature-search,
+  method-analysis, candidate proof-framework, and report workflow.
 
 ## Repository Boundary
 

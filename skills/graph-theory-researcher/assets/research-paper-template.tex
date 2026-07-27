@@ -1,0 +1,104 @@
+\documentclass[UTF8,11pt,a4paper,fontset=fandol]{ctexart}
+\usepackage{amsmath,amsthm,amssymb}
+\usepackage{booktabs,longtable}
+\usepackage[colorlinks=true,linkcolor=blue!55!black,urlcolor=blue!65!black,citecolor=green!45!black]{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{trees,positioning,shapes.geometric}
+\usepackage{enumitem}
+\usepackage[backend=biber,style=numeric,sorting=nyt]{biblatex}
+
+% 默认书目为空。只有逐项核验元数据与论断归属后，才可加入 .bib 和正式引用。
+\newif\ifverifiedbibliography
+\verifiedbibliographyfalse
+
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0.35em}
+\setlist{nosep,leftmargin=2.2em}
+\newtheorem{theorem}{定理}[section]
+\newtheorem{lemma}[theorem]{引理}
+\newtheorem{proposition}[theorem]{命题}
+\theoremstyle{definition}
+\newtheorem{counterexample}[theorem]{反例}
+\theoremstyle{remark}
+\newtheorem{observation}[theorem]{计算观察}
+\newtheorem{openproblem}[theorem]{开放问题}
+
+\newcommand{\Placeholder}[1]{\textcolor{magenta!70!black}{[待填写：#1]}}
+\newcommand{\Attribution}[1]{\Placeholder{#1}}
+\providecommand{\PaperTitle}{\Placeholder{新论文标题}}
+\providecommand{\AuthorNames}{\Placeholder{作者姓名}}
+\providecommand{\EvidenceAudit}{\Placeholder{Stage 4 审计记录版本与批准范围}}
+
+\title{\PaperTitle}
+\author{\AuthorNames}
+\date{\today}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+\Placeholder{研究问题、图类、主要结果、证据等级与局限。不得把计算观察写成证明。}
+\end{abstract}
+\tableofcontents
+
+\section{引言}
+说明问题的动机、贡献与边界。本文仅纳入 \EvidenceAudit 中获准进入论文的结果。历史与现实归属统一填写为 \Attribution{作者、结果、核验来源和定位}。
+
+\section{定义与已有结果}
+明确图是有限还是无限、简单还是允许重边或自环，并固定同构、连通性及参数约定。
+\begin{theorem}[\Placeholder{已核验结果名称}]
+\Placeholder{完整量词、假设、结论、来源定位与归属标签。}
+\end{theorem}
+\begin{lemma}[\Placeholder{辅助结果名称}]
+\Placeholder{准确陈述及其适用范围。}
+\end{lemma}
+
+\section{主要结果及其证据等级}
+每项结果只使用一种明确标签：已证明定理、已证明引理、已证明命题、已验证反例、计算观察或开放问题。
+\begin{proposition}[\Placeholder{部分结果名称}]
+\Placeholder{受限图类或参数范围内的结论；列出完整证明所覆盖的范围。}
+\end{proposition}
+\begin{observation}[\Placeholder{实验观察名称}]
+\Placeholder{仅对下节记录的有限测试范围有效的观察，不外推为无界命题。}
+\end{observation}
+
+\section{证明与反例}
+逐一审计量词、假设、边界情形和依赖关系；证明中的每次调用应能定位到前述结果。
+\begin{counterexample}[\Placeholder{被否定命题或必要假设}]
+\Placeholder{给出对象，并逐项验证全部假设成立而结论不成立。}
+\end{counterexample}
+\begin{proof}
+\Placeholder{完整可复核的证明；若仅有部分证明，移至下一节并收窄命题。}
+\end{proof}
+
+\section{计算实验与可复现性}
+计算只支持所记录的有限观察，不替代无界结论的证明。
+\begin{description}[style=nextline]
+  \item[测试范围] \Placeholder{顶点数、边数、参数区间、过滤条件与样本数量}
+  \item[穷举或随机] \Placeholder{exhaustive 或 random；穷举宇宙或采样分布及次数}
+  \item[图约定] \Placeholder{简单/多重、有向/无向、标号/非标号、同构去重方式}
+  \item[软件版本] \Placeholder{操作系统、语言、依赖库及精确版本}
+  \item[运行命令] \texttt{\Placeholder{可直接复现的命令与参数}}
+  \item[随机种子] \texttt{\Placeholder{seed；纯穷举则写“不适用”}}
+  \item[产物路径] \texttt{\Placeholder{代码、日志、原始数据与校验和的位置}}
+\end{description}
+
+\section{开放问题与部分结果}
+\textbf{证据警告：未找到反例不构成证明。}“开放”仅表示在本次检索范围内尚未解决，不声称该问题在全部既有文献中仍然开放。
+\begin{openproblem}[\Placeholder{问题名称}]
+\Placeholder{精确定义图类、量词、参数和待证或待否定的结论。}
+\end{openproblem}
+\begin{description}[style=nextline]
+  \item[问题动机] \Placeholder{为何自然、与主要结果的关系及潜在价值}
+  \item[已证特殊情形] \Placeholder{已完成证明的受限图类、参数范围及命题编号}
+  \item[测试范围] \Placeholder{已穷举的宇宙或随机采样范围；引用计算产物}
+  \item[证明障碍] \Placeholder{现有论证在哪一步失败，以及缺少的结构或估计}
+  \item[下一步方法] \Placeholder{下一项可执行的证明、反例搜索或文献检索动作}
+\end{description}
+
+\section{结论}
+分别总结已证明结果、反例、部分结果与计算观察，并重申所有外推限制和仍待核验事项。
+
+\ifverifiedbibliography
+  \printbibliography[title={核验书目}]
+\fi
+\end{document}

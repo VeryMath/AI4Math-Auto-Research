@@ -1,0 +1,40 @@
+{
+  "skill": "qskill",
+  "version": "1.0",
+  "trigger_prefix": "qskill:",
+  "description": "最终的组合大skill。对用户输入的数学公开问题，依次调用 literature-search → literature-analysis → literature-proof-framework，输出三合一完整分析报告（PDF）。",
+  "input_schema": {
+    "type": "string",
+    "description": "一个或多个数学公开问题的描述。多问题需明确说明。"
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "report_type": {"type": "string", "enum": ["single", "multi"]},
+      "problems": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "slug": {"type": "string"},
+            "original_input": {"type": "string"},
+            "exact_problem": {"type": "string"},
+            "literature_review": {"type": "object"},
+            "method_analysis": {"type": "object"},
+            "proof_frameworks": {"type": "object"}
+          }
+        }
+      },
+      "report_md_path": {"type": "string"},
+      "report_pdf_path": {"type": "string"}
+    }
+  },
+  "sub_skills": ["literature-search", "literature-analysis", "literature-proof-framework"],
+  "report_format": {
+    "primary_path": "outputs/qs_reports/",
+    "markdown_template": "<slug>_完整分析报告_<date>.md",
+    "pdf_template": "<slug>_完整分析报告_<date>.pdf",
+    "auto_save": "required",
+    "dedup": "append _v2, _v3 suffix on collision"
+  }
+}

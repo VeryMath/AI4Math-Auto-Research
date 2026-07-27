@@ -1,0 +1,4 @@
+interface:
+  display_name: "Open Problem Research Pipeline"
+  short_description: "Research open math problems through a staged evidence pipeline"
+  default_prompt: "Use $open-problem-research-pipeline to research this open mathematical problem through literature, method, and proof-framework stages."

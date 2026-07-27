@@ -1,0 +1,4 @@
+interface:
+  display_name: "Literature Proof Framework"
+  short_description: "Build candidate proof frameworks with explicit obligations"
+  default_prompt: "Use $literature-proof-framework to turn these verified methods into candidate proof frameworks and proof obligations."
