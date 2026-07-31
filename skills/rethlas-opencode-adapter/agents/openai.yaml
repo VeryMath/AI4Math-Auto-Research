@@ -1,5 +1,0 @@
-interface:
-  display_name: "Rethlas OpenCode Adapter"
-  short_description: "Patch and run FrenzyMath Rethlas through OpenCode"
-  default_prompt: "Use $rethlas-opencode-adapter to clone FrenzyMath Rethlas, apply the OpenCode adapter, prepare my problem file, start the verification service, run the generation agent, and supervise the run until blueprint_verified.md appears."
-

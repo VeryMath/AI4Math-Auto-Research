@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "name": "rethlas-opencode-compat",
+  "upstream_repository": "https://github.com/frenzymath/Rethlas.git",
+  "baseline_commit": "974b82ccfbcb07c405a233886e6e8d1d4db84828",
+  "patch_file": "rethlas-opencode-compat.patch",
+  "patch_sha256": "ac63ef5b38f89b8603c87d4467f664b46bfd4a6ce79e9731e694e0bd5b8a684f",
+  "additive_only": true,
+  "files": [
+    "README.opencode.md",
+    "README.opencode.zh-CN.md",
+    "agents/generation/.opencode/skills/recursive-proving-opencode/SKILL.md",
+    "agents/generation/AGENTS.opencode.md",
+    "agents/generation/opencode.json",
+    "agents/generation/tests/run_example_opencode.sh",
+    "agents/verification/AGENTS.opencode.md",
+    "agents/verification/api/server_opencode.py",
+    "agents/verification/opencode.json"
+  ]
+}

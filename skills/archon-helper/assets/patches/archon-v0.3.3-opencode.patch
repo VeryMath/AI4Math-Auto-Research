@@ -1,0 +1,1375 @@
+diff --git a/src/archon/.archon-src/prompts/variants/opencode.md b/src/archon/.archon-src/prompts/variants/opencode.md
+new file mode 100644
+index 0000000..b61f19c
+--- /dev/null
++++ b/src/archon/.archon-src/prompts/variants/opencode.md
+@@ -0,0 +1,21 @@
++## OpenCode runtime notes
++
++You are running under OpenCode. Use its native `read`, `edit`/`write`, and
++`bash` tools. Archon's own subagents must still be dispatched with the
++blocking `.opencode/tools/archon-subagent.py` wrapper described in the main
++prompt; do not use OpenCode's `task` tool.
++
++Never invoke `claude`, install or inspect Claude plugins, or use Claude slash
++commands. The scripts under `.opencode/tools/` are ordinary Python entry
++points and route nested agents back through the configured OpenCode harness.
++
++The `archon-lean-lsp` MCP server is available when this harness enables the
++`lean-lsp` bundle. Prefer its goal, diagnostic, and search tools while
++developing proofs, then use `lake build` for the final project check.
++
++Lean helper scripts live under `$LEAN4_SCRIPTS`; invoke them using the command
++forms documented by the Lean4 skill. Do not look for a `scripts/` directory
++inside `.opencode/skills/lean4/`.
++
++Do not alter theorem statements, introduce axioms, or hide unfinished proofs.
++If a goal cannot be closed, leave honest partial progress and report it.
+diff --git a/src/archon/agent.py b/src/archon/agent.py
+index c1b99c3..9234e25 100644
+--- a/src/archon/agent.py
++++ b/src/archon/agent.py
+@@ -1911,9 +1911,10 @@ def build_runner(
+     """Build the :class:`AgentRunner` for a responsibility.
+ 
+     The single decision point for routing a role to an engine. Registered
+-    runners: ``"claude-code"`` (the built-in :class:`ClaudeAgent`) and
+-    ``"codex"`` (:class:`~archon.agents.codex.CodexAgent`). An unknown
+-    runner raises :class:`UnknownHarnessError`.
++    runners: ``"claude-code"`` (the built-in :class:`ClaudeAgent`),
++    ``"codex"`` (:class:`~archon.agents.codex.CodexAgent`), and
++    ``"opencode"`` (:class:`~archon.agents.opencode.OpenCodeAgent`). An
++    unknown runner raises :class:`UnknownHarnessError`.
+ 
+     Resolution of *which* harness:
+ 
+@@ -2021,6 +2022,12 @@ def _runner_from_descriptor(
+         # it uses its own native ~/.codex default unless the descriptor names a
+         # codex-compatible model. Passing a Claude id here would emit `-m opus`.
+         return CodexAgent(descriptor=descriptor, role=role)
++    if runner == "opencode":
++        from archon.agents.opencode import OpenCodeAgent
++
++        # Like Codex, OpenCode owns its provider/model default. Only an
++        # explicit descriptor model is forwarded.
++        return OpenCodeAgent(descriptor=descriptor, role=role)
+     if runner == "antigravity":
+         from archon.agents.antigravity import AntigravityAgent
+         # Antigravity CLI model defaults to something internal but can be overridden
+@@ -2030,7 +2037,8 @@ def _runner_from_descriptor(
+     raise UnknownHarnessError(
+         f"Harness {descriptor.name!r} requests runner {runner!r}, but the "
+         f"runners available in this version of Archon are "
+-        f"{DEFAULT_HARNESS!r}, 'codex', and 'antigravity'. Remove the harness override or "
++        f"{DEFAULT_HARNESS!r}, 'codex', 'opencode', and 'antigravity'. "
++        f"Remove the harness override or "
+         f"set its runner to a supported value."
+     )
+ 
+@@ -2041,4 +2049,4 @@ __all__ = [
+     "DISALLOWED_NATIVE_TOOLS", "BASH_FOREGROUND_TIMEOUT_MS",
+     "RunOutcome", "QuotaExhaustedError", "SupervisionResult",
+     "UnknownHarnessError", "build_runner", "supervise_streamed_run",
+-]
+\ No newline at end of file
++]
+diff --git a/src/archon/agents/__init__.py b/src/archon/agents/__init__.py
+index b5e4b53..042b33a 100644
+--- a/src/archon/agents/__init__.py
++++ b/src/archon/agents/__init__.py
+@@ -9,5 +9,6 @@ single factory that picks one based on the resolved harness descriptor.
+ from __future__ import annotations
+ 
+ from archon.agents.codex import CodexAgent
++from archon.agents.opencode import OpenCodeAgent
+ 
+-__all__ = ["CodexAgent"]
++__all__ = ["CodexAgent", "OpenCodeAgent"]
+diff --git a/src/archon/agents/opencode.py b/src/archon/agents/opencode.py
+new file mode 100644
+index 0000000..3c626c4
+--- /dev/null
++++ b/src/archon/agents/opencode.py
+@@ -0,0 +1,500 @@
++"""OpenCode CLI runner for Archon's harness router."""
++
++from __future__ import annotations
++
++import json
++import os
++import shlex
++import shutil
++import subprocess
++import sys
++import threading
++from datetime import datetime, timezone
++from pathlib import Path
++
++from archon import log
++from archon.agent import RunOutcome, supervise_streamed_run
++from archon.commands.tooling.project_config import HarnessDescriptor
++
++
++_KNOWN_MCP_BUNDLES = frozenset({"lean-lsp"})
++_OPENCODE_BIN_ENV = "ARCHON_OPENCODE_BIN"
++
++
++class UnknownMcpBundleError(ValueError):
++    """An OpenCode harness requested an MCP bundle Archon does not ship."""
++
++
++class LeanLspMcpUnavailableError(RuntimeError):
++    """The bundled lean-lsp MCP server cannot be located."""
++
++
++def _now_iso() -> str:
++    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
++
++
++def _resolve_opencode_bin(
++    descriptor: HarnessDescriptor, env: dict[str, str],
++) -> str:
++    override = descriptor.raw.get("bin")
++    if isinstance(override, str) and override:
++        return str(Path(override).expanduser())
++    inherited = env.get(_OPENCODE_BIN_ENV)
++    if inherited:
++        return inherited
++    return shutil.which("opencode") or "opencode"
++
++
++def _prepend_archon_to_path(env: dict[str, str]) -> None:
++    exe = shutil.which("archon")
++    if exe:
++        bindir = str(Path(exe).resolve().parent)
++        parts = env.get("PATH", "").split(os.pathsep)
++        if bindir not in parts:
++            env["PATH"] = os.pathsep.join([bindir, *filter(None, parts)])
++        env.setdefault("ARCHON_CLI_BIN", str(Path(exe).resolve()))
++    env.setdefault("ARCHON_PYTHON", str(Path(sys.executable).resolve()))
++
++
++def _deep_merge(base: dict, overlay: dict) -> dict:
++    result = dict(base)
++    for key, value in overlay.items():
++        if isinstance(value, dict) and isinstance(result.get(key), dict):
++            result[key] = _deep_merge(result[key], value)
++        else:
++            result[key] = value
++    return result
++
++
++# ``opencode run --format json`` emits one JSON object per line.  Keep the
++# normalizer self-contained so it can be piped through the shared Archon
++# subprocess supervisor just like the Claude and Codex runners.
++_OPENCODE_STREAM_PARSER = r'''
++import datetime
++import json
++import sys
++
++verbose = sys.argv[1] == "1"
++raw_path, jsonl_path, model, last_message_path = sys.argv[2:6]
++raw = open(raw_path, "a") if verbose else None
++out = open(jsonl_path, "a")
++
++def emit(kind, **fields):
++    row = {
++        "ts": datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z"),
++        "event": kind,
++        **fields,
++    }
++    out.write(json.dumps(row, ensure_ascii=False) + "\n")
++    out.flush()
++
++session_seen = False
++last_message = ""
++errors = []
++turns = 0
++usage = {"input_tokens": 0, "output_tokens": 0, "cache_read_tokens": 0}
++cost = 0.0
++
++for line in sys.stdin:
++    line = line.strip()
++    if not line:
++        continue
++    if raw:
++        raw.write(line + "\n")
++        raw.flush()
++    try:
++        obj = json.loads(line)
++    except json.JSONDecodeError:
++        continue
++
++    sid = obj.get("sessionID")
++    if sid and not session_seen:
++        emit("session_meta", session_id=sid)
++        session_seen = True
++
++    kind = obj.get("type", "")
++    part = obj.get("part") or {}
++    if kind == "text":
++        text = str(part.get("text") or "")
++        if text:
++            last_message = text
++            emit("text", content=text)
++            print(text, flush=True)
++    elif kind == "reasoning":
++        text = str(part.get("text") or "")
++        if text:
++            emit("thinking", content=text)
++    elif kind == "tool_use":
++        state = part.get("state") or {}
++        tool = str(part.get("tool") or "tool")
++        tool_input = state.get("input") or {}
++        emit("tool_call", tool=tool, input=tool_input)
++        if state.get("status") == "error":
++            content = str(state.get("error") or "tool failed")
++        else:
++            content = state.get("output") or ""
++            if not isinstance(content, str):
++                content = json.dumps(content, ensure_ascii=False)
++        emit("tool_result", tool=tool, content=content)
++    elif kind == "step_finish":
++        turns += 1
++        tokens = part.get("tokens") or {}
++        cache = tokens.get("cache") or {}
++        usage["input_tokens"] += int(tokens.get("input") or 0)
++        usage["output_tokens"] += int(tokens.get("output") or 0)
++        usage["cache_read_tokens"] += int(cache.get("read") or 0)
++        cost += float(part.get("cost") or 0.0)
++    elif kind == "error":
++        err = obj.get("error") or part.get("error") or "OpenCode error"
++        if not isinstance(err, str):
++            err = json.dumps(err, ensure_ascii=False)
++        errors.append(err)
++
++summary = "\n".join(errors) if errors else last_message
++emit(
++    "session_end",
++    summary=summary,
++    usage=usage,
++    num_turns=turns,
++    total_cost_usd=cost,
++    model=model,
++    input_tokens=usage["input_tokens"],
++    output_tokens=usage["output_tokens"],
++    cache_read_input_tokens=usage["cache_read_tokens"],
++)
++if last_message_path and last_message:
++    try:
++        with open(last_message_path, "w") as f:
++            f.write(last_message)
++    except OSError:
++        pass
++out.close()
++if raw:
++    raw.close()
++'''
++
++
++class OpenCodeAgent:
++    """Run one Archon role through ``opencode run``."""
++
++    def __init__(self, *, descriptor: HarnessDescriptor, role: str = "") -> None:
++        self.descriptor = descriptor
++        self.role = role
++        self.model = descriptor.model
++
++    def _extra_args(self) -> list[str]:
++        value = self.descriptor.raw.get("extra_args")
++        if isinstance(value, list):
++            return [str(item) for item in value]
++        if isinstance(value, str) and value.strip():
++            return shlex.split(value)
++        return []
++
++    def build_argv(
++        self,
++        prompt: str,
++        *,
++        cwd: Path,
++        env_source: dict[str, str] | None = None,
++        extra_args: list[str] | None = None,
++        resume_session_id: str | None = None,
++    ) -> list[str]:
++        env = env_source or os.environ
++        argv = [
++            _resolve_opencode_bin(self.descriptor, env),
++            "run",
++            "--format",
++            "json",
++            "--auto",
++            "--dir",
++            str(cwd),
++        ]
++        if resume_session_id:
++            argv += ["--session", resume_session_id]
++        if self.model:
++            argv += ["--model", self.model]
++        agent = self.descriptor.raw.get("agent")
++        if isinstance(agent, str) and agent:
++            argv += ["--agent", agent]
++        variant = self.descriptor.raw.get("variant") or self.descriptor.effort
++        if isinstance(variant, str) and variant:
++            argv += ["--variant", variant]
++        argv += self._extra_args()
++        if extra_args:
++            argv += list(extra_args)
++        argv.append(prompt)
++        return argv
++
++    def build_interactive_argv(
++        self,
++        prompt: str,
++        *,
++        cwd: Path,
++        env_source: dict[str, str] | None = None,
++        extra_args: list[str] | None = None,
++    ) -> list[str]:
++        env = env_source or os.environ
++        argv = [
++            _resolve_opencode_bin(self.descriptor, env),
++            str(cwd),
++            "--auto",
++        ]
++        if self.model:
++            argv += ["--model", self.model]
++        agent = self.descriptor.raw.get("agent")
++        if isinstance(agent, str) and agent:
++            argv += ["--agent", agent]
++        argv += self._extra_args()
++        if extra_args:
++            argv += list(extra_args)
++        argv += ["--prompt", prompt]
++        return argv
++
++    def build_env(
++        self,
++        *,
++        cwd: Path,
++        env_overrides: dict[str, str] | None = None,
++    ) -> dict[str, str]:
++        env = os.environ.copy()
++        if env_overrides:
++            env.update(env_overrides)
++        _prepend_archon_to_path(env)
++        # Do not import global or project Claude Code rules/skills merely
++        # because the user happens to have Claude Code installed.
++        env["OPENCODE_DISABLE_CLAUDE_CODE"] = "1"
++
++        binary = _resolve_opencode_bin(self.descriptor, env)
++        if binary != "opencode":
++            env[_OPENCODE_BIN_ENV] = binary
++
++        from archon.commands.init.utils import data_path
++
++        lean_bundle = Path(data_path("skills/lean4"))
++        scripts = lean_bundle / "lib" / "scripts"
++        if scripts.is_dir():
++            env.setdefault("LEAN4_PLUGIN_ROOT", str(lean_bundle))
++            env.setdefault("LEAN4_SCRIPTS", str(scripts))
++            env.setdefault(
++                "LEAN4_REFS", str(lean_bundle / "skills" / "lean4" / "references"),
++            )
++            env.setdefault("LEAN4_PYTHON_BIN", sys.executable)
++
++        inline: dict = {}
++        raw_inline = env.get("OPENCODE_CONFIG_CONTENT")
++        if raw_inline:
++            try:
++                loaded = json.loads(raw_inline)
++                if isinstance(loaded, dict):
++                    inline = loaded
++            except json.JSONDecodeError:
++                log.warn(
++                    "Ignoring invalid OPENCODE_CONFIG_CONTENT while adding "
++                    "Archon's runtime settings."
++                )
++        if isinstance(inline.get("permission"), str):
++            inline["permission"] = {"*": inline["permission"]}
++
++        overlay: dict = {
++            "permission": {
++                "task": "deny",
++                "question": "deny",
++            }
++        }
++        if self.descriptor.mcp:
++            overlay["mcp"] = self._mcp_config(cwd, env)
++        env["OPENCODE_CONFIG_CONTENT"] = json.dumps(
++            _deep_merge(inline, overlay), separators=(",", ":"),
++        )
++        return env
++
++    def _mcp_config(self, cwd: Path, env: dict[str, str]) -> dict:
++        unknown = set(self.descriptor.mcp) - _KNOWN_MCP_BUNDLES
++        if unknown:
++            raise UnknownMcpBundleError(
++                f"opencode harness {self.descriptor.name!r}: unknown MCP "
++                f"bundle(s): {', '.join(sorted(unknown))}"
++            )
++        if "lean-lsp" not in self.descriptor.mcp:
++            return {}
++
++        from archon.commands.init.utils import data_path
++
++        server_dir = Path(data_path("tools/lean-lsp-mcp"))
++        if not server_dir.is_dir():
++            raise LeanLspMcpUnavailableError(
++                f"OpenCode lean-lsp MCP directory not found: {server_dir}"
++            )
++        raw_uv = self.descriptor.raw.get("uv_bin")
++        uv = (
++            str(Path(raw_uv).expanduser())
++            if isinstance(raw_uv, str) and raw_uv
++            else env.get("ARCHON_UV_BIN") or shutil.which("uv") or "uv"
++        )
++        server_env = {"LEAN_PROJECT_PATH": str(cwd)}
++        if env.get("PATH"):
++            server_env["PATH"] = env["PATH"]
++        return {
++            "archon-lean-lsp": {
++                "type": "local",
++                "command": [
++                    uv,
++                    "run",
++                    "--directory",
++                    str(server_dir),
++                    "lean-lsp-mcp",
++                ],
++                "environment": server_env,
++                "enabled": True,
++                "timeout": 600_000,
++            }
++        }
++
++    def _apply_prompt_variant(self, prompt: str, cwd: Path) -> str:
++        variant = self.descriptor.prompt_variant
++        if not variant:
++            return prompt
++        from archon.agents.codex import resolve_prompt_variant
++
++        tail = resolve_prompt_variant(variant, project_path=cwd)
++        if not tail:
++            log.warn(
++                f"opencode harness prompt variant {variant!r} was not found; "
++                "continuing without it."
++            )
++            return prompt
++        return f"{prompt}\n\n{tail.strip()}\n"
++
++    def run(
++        self,
++        prompt: str,
++        *,
++        cwd: Path,
++        log_base: Path | None = None,
++        verbose_logs: bool = False,
++        extra_args: list[str] | None = None,
++        env_overrides: dict[str, str] | None = None,
++        cancel_event: "threading.Event | None" = None,
++        idle_timeout_s: float | None = 900,
++        max_attempts: int = 3,
++        resume_session_id: str | None = None,
++    ) -> bool:
++        prompt = self._apply_prompt_variant(prompt, cwd)
++        env = self.build_env(cwd=cwd, env_overrides=env_overrides)
++        self._announce()
++        argv = self.build_argv(
++            prompt,
++            cwd=cwd,
++            env_source=env,
++            extra_args=extra_args,
++            resume_session_id=resume_session_id,
++        )
++        if log_base is None:
++            return subprocess.run(argv, cwd=cwd, env=env).returncode == 0
++
++        max_attempts = max(1, max_attempts)
++        for attempt in range(1, max_attempts + 1):
++            outcome = self._run_with_logging(
++                argv,
++                cwd=cwd,
++                env=env,
++                log_base=log_base,
++                verbose_logs=verbose_logs,
++                cancel_event=cancel_event,
++                idle_timeout_s=idle_timeout_s,
++                attempt=attempt,
++            )
++            if outcome is RunOutcome.SUCCESS:
++                return True
++            if outcome in (RunOutcome.CANCELLED, RunOutcome.FAILED):
++                return False
++            if attempt < max_attempts:
++                log.warn(
++                    f"opencode run idle for {idle_timeout_s}s; retrying "
++                    f"({attempt}/{max_attempts})."
++                )
++        return False
++
++    def run_interactive(
++        self,
++        prompt: str,
++        *,
++        cwd: Path,
++        extra_args: list[str] | None = None,
++    ) -> int:
++        prompt = self._apply_prompt_variant(prompt, cwd)
++        env = self.build_env(cwd=cwd)
++        self._announce()
++        argv = self.build_interactive_argv(
++            prompt, cwd=cwd, env_source=env, extra_args=extra_args,
++        )
++        return subprocess.run(argv, cwd=cwd, env=env).returncode
++
++    def _announce(self) -> None:
++        role = f" ({self.role})" if self.role else ""
++        model = self.model or "native default"
++        log.info(f"Agent model: {model} [opencode]{role}")
++
++    def _emit_session_start(self, jsonl: Path, attempt: int) -> None:
++        row: dict[str, object] = {
++            "ts": _now_iso(),
++            "event": "session_start",
++            "model": self.model or "native-default",
++            "runner": "opencode",
++        }
++        if self.role:
++            row["role"] = self.role
++        if attempt > 1:
++            row["attempt"] = attempt
++        jsonl.parent.mkdir(parents=True, exist_ok=True)
++        with jsonl.open("a") as stream:
++            stream.write(json.dumps(row) + "\n")
++
++    def _run_with_logging(
++        self,
++        argv: list[str],
++        *,
++        cwd: Path,
++        env: dict[str, str],
++        log_base: Path,
++        verbose_logs: bool,
++        cancel_event: "threading.Event | None",
++        idle_timeout_s: float | None,
++        attempt: int,
++    ) -> RunOutcome:
++        jsonl = Path(f"{log_base}.jsonl")
++        self._emit_session_start(jsonl, attempt)
++        result = supervise_streamed_run(
++            argv,
++            cwd=cwd,
++            env=env,
++            jsonl_path=jsonl,
++            parser_cmd=[
++                sys.executable,
++                "-u",
++                "-c",
++                _OPENCODE_STREAM_PARSER,
++                "1" if verbose_logs else "0",
++                f"{log_base}.opencode-raw.jsonl",
++                str(jsonl),
++                self.model or "native-default",
++                str(log_base.parent / f"{log_base.name}.last_message.txt"),
++            ],
++            stderr_dest=f"{log_base}.raw.log" if verbose_logs else os.devnull,
++            cancel_event=cancel_event,
++            idle_timeout_s=idle_timeout_s,
++            attempt=attempt,
++            role=self.role,
++        )
++        if result.cancelled:
++            return RunOutcome.CANCELLED
++        if result.idle_timeout_hit:
++            return RunOutcome.IDLE_TIMEOUT
++        return RunOutcome.SUCCESS if result.returncode == 0 else RunOutcome.FAILED
++
++
++__all__ = [
++    "LeanLspMcpUnavailableError",
++    "OpenCodeAgent",
++    "UnknownMcpBundleError",
++]
+diff --git a/src/archon/commands/doctor.py b/src/archon/commands/doctor.py
+index 6f92bee..0f80805 100644
+--- a/src/archon/commands/doctor.py
++++ b/src/archon/commands/doctor.py
+@@ -123,6 +123,37 @@ class ClaudeCodeDoctorCheck(DoctorCheck):
+         return rows
+ 
+ 
++class OpenCodeDoctorCheck(DoctorCheck):
++    title = "OpenCode"
++
++    def __init__(self, project_path: Path, *, skip_auth: bool = False) -> None:
++        self.project_path = project_path
++        self.skip_auth = skip_auth
++
++    def run(self) -> list[CheckRow]:
++        if not _has("opencode"):
++            return [("opencode", "error", "not installed")]
++
++        version = _version(["opencode", "--version"])
++        rows: list[CheckRow] = [("opencode", "ok", version)]
++        if self.skip_auth:
++            rows[0] = ("opencode", "ok", f"{version} (auth skipped)")
++            return rows
++
++        r = _run([
++            "opencode", "run", "--format", "json", "--auto",
++            "--dir", str(self.project_path), "Reply with exactly OK.",
++        ])
++        if r.returncode == 0:
++            rows.append(("opencode auth", "ok", "provider request succeeded"))
++        else:
++            rows.append((
++                "opencode auth", "error",
++                "provider request failed — run: opencode auth list",
++            ))
++        return rows
++
++
+ class ApiKeysDoctorCheck(DoctorCheck):
+     title = "API keys"
+ 
+@@ -368,6 +399,56 @@ class ProjectClaudeDoctorCheck(DoctorCheck):
+         return rows
+ 
+ 
++class ProjectOpenCodeDoctorCheck(DoctorCheck):
++    """Check OpenCode-native skill installation and Archon runtime wiring."""
++
++    title = "Project OpenCode config"
++
++    def __init__(self, project_path: Path) -> None:
++        self.project_path = project_path
++
++    def run(self) -> list[CheckRow]:
++        rows: list[CheckRow] = []
++        skill = self.project_path / ".opencode" / "skills" / "lean4" / "SKILL.md"
++        if skill.is_file():
++            rows.append(("Lean4 skill", "ok", str(skill.parent)))
++        else:
++            rows.append(("Lean4 skill", "warning", "not found — run: archon init"))
++
++        wrapper = (
++            self.project_path / ".opencode" / "tools" / "archon-subagent.py"
++        )
++        if wrapper.is_file():
++            rows.append(("subagent wrapper", "ok", ".opencode/tools/"))
++        else:
++            rows.append(("subagent wrapper", "warning", "not found"))
++
++        try:
++            from archon.commands.tooling.project_config import (
++                load_harness_descriptor,
++                load_project_config,
++                resolve_role_harness,
++            )
++
++            cfg = load_project_config(self.project_path)
++            harness = resolve_role_harness(cfg, "prover")
++            descriptor = load_harness_descriptor(cfg, harness)
++            if descriptor.runner == "opencode":
++                rows.append(("prover harness", "ok", harness))
++            else:
++                rows.append((
++                    "prover harness", "error",
++                    f"{harness} ({descriptor.runner})",
++                ))
++            if "lean-lsp" in descriptor.mcp:
++                rows.append(("archon-lean-lsp", "ok", "injected at runtime"))
++            else:
++                rows.append(("archon-lean-lsp", "warning", "not enabled"))
++        except Exception as exc:
++            rows.append(("OpenCode config", "error", str(exc)))
++        return rows
++
++
+ class SorryCountDoctorCheck(DoctorCheck):
+     title = "Sorry count"
+ 
+@@ -382,8 +463,8 @@ class SorryCountDoctorCheck(DoctorCheck):
+             return rows
+ 
+         r = _run([sys.executable, str(analyzer), str(self.project_path), "--format=summary"])
+-        if r.returncode == 0 and r.stdout.strip():
+-            rows.append(("sorry count", "ok", r.stdout.strip().splitlines()[-1]))
++        if r.returncode in {0, 1} and r.stdout.strip():
++            rows.append(("sorry count", "ok", r.stdout.strip().splitlines()[0]))
+         else:
+             rows.append(("sorry count", "skipped", "could not run analyzer"))
+         return rows
+@@ -402,12 +483,18 @@ class DoctorCommand:
+     def run(self) -> None:
+         resolved = Path(self.project_path).resolve()
+         all_rows: list[CheckRow] = []
++        opencode_only = _project_uses_only_opencode(resolved)
+ 
+         log.header("System Tools")
++        harness_rows = (
++            OpenCodeDoctorCheck(resolved, skip_auth=self.skip_auth).run()
++            if opencode_only
++            else ClaudeCodeDoctorCheck(skip_auth=self.skip_auth).run()
++        )
+         rows = (
+             LeanToolchainDoctorCheck().run()
+             + PythonToolsDoctorCheck().run()
+-            + ClaudeCodeDoctorCheck(skip_auth=self.skip_auth).run()
++            + harness_rows
+         )
+         log.results_table(rows, title="System")
+         all_rows.extend(rows)
+@@ -427,8 +514,19 @@ class DoctorCommand:
+         log.results_table(rows, title="State (.archon/)")
+         all_rows.extend(rows)
+ 
+-        rows = ProjectClaudeDoctorCheck(resolved).run()
+-        log.results_table(rows, title="Claude Config (.claude/)")
++        rows = (
++            ProjectOpenCodeDoctorCheck(resolved).run()
++            if opencode_only
++            else ProjectClaudeDoctorCheck(resolved).run()
++        )
++        log.results_table(
++            rows,
++            title=(
++                "OpenCode Config (.opencode/)"
++                if opencode_only
++                else "Claude Config (.claude/)"
++            ),
++        )
+         all_rows.extend(rows)
+ 
+         if (resolved / ".archon").is_dir():
+@@ -453,6 +551,25 @@ class DoctorCommand:
+             log.success("All checks passed.")
+ 
+ 
++def _project_uses_only_opencode(project_path: Path) -> bool:
++    try:
++        from archon.commands.tooling.project_config import (
++            load_harness_descriptor,
++            load_project_config,
++            resolve_role_harness,
++        )
++
++        cfg = load_project_config(project_path)
++        return all(
++            load_harness_descriptor(
++                cfg, resolve_role_harness(cfg, role),
++            ).runner == "opencode"
++            for role in ("plan", "prover", "review")
++        )
++    except Exception:
++        return False
++
++
+ # ── Typer entry point ─────────────────────────────────────────────────
+ 
+ 
+@@ -460,7 +577,7 @@ def doctor(
+     project_path: str = typer.Argument(".", help="Path to Lean project"),
+     skip_auth: bool = typer.Option(
+         False, "--skip-auth",
+-        help="Skip Claude Code authentication test (faster).",
++        help="Skip the selected harness authentication test (faster).",
+     ),
+ ) -> None:
+     """Verify the full Archon setup.
+diff --git a/src/archon/commands/init/command.py b/src/archon/commands/init/command.py
+index e8986f8..98bbff4 100644
+--- a/src/archon/commands/init/command.py
++++ b/src/archon/commands/init/command.py
+@@ -78,10 +78,10 @@ class InitCommand:
+ 
+         warn_if_mismatch(resolved)
+ 
+-        if not has("claude"):
++        if self.harness != "opencode" and not has("claude"):
+             log.warn(
+                 "Claude Code is not installed. Claude-backed harnesses will "
+-                "fail, but Codex-backed harnesses can still run."
++                "fail, but OpenCode/Codex-backed harnesses can still run."
+             )
+ 
+         self.ctx = InitContext(
+diff --git a/src/archon/commands/init/entry.py b/src/archon/commands/init/entry.py
+index 6691e78..c4d94bc 100644
+--- a/src/archon/commands/init/entry.py
++++ b/src/archon/commands/init/entry.py
+@@ -45,8 +45,8 @@ def init(
+     harness: Optional[str] = typer.Option(
+         None, "--harness",
+         help=(
+-            "Engine for loop roles: 'claude-code' (default), 'codex' "
+-            "(Codex CLI), or 'mixed' (pick per role)."
++            "Engine for loop roles: 'claude-code' (default), 'opencode', "
++            "'codex', 'antigravity', or 'mixed' (pick per role)."
+         ),
+     ),
+     focus: Optional[str] = typer.Option(
+diff --git a/src/archon/commands/init/steps/disable_conflicts.py b/src/archon/commands/init/steps/disable_conflicts.py
+index 14e4dce..60e7aa9 100644
+--- a/src/archon/commands/init/steps/disable_conflicts.py
++++ b/src/archon/commands/init/steps/disable_conflicts.py
+@@ -4,7 +4,7 @@ from __future__ import annotations
+ 
+ from archon import log
+ 
+-from ..utils import find_global_lean4_plugins, run
++from ..utils import find_global_lean4_plugins, has, run
+ from .base import InitStep
+ 
+ 
+@@ -15,6 +15,12 @@ class DisableConflictingPluginsStep(InitStep):
+     def run(self) -> None:
+         ctx = self.ctx
+         log.phase(self.number, self.name)
++        if ctx.harness == "opencode":
++            log.success("OpenCode mode ignores Claude plugin configuration")
++            return
++        if not has("claude"):
++            log.success("Claude Code not installed; no Claude plugins to disable")
++            return
+         conflicting = find_global_lean4_plugins()
+         if not conflicting:
+             log.success("No conflicting global lean4-skills detected")
+diff --git a/src/archon/commands/init/steps/harness_select.py b/src/archon/commands/init/steps/harness_select.py
+index 2f47a1f..80fee51 100644
+--- a/src/archon/commands/init/steps/harness_select.py
++++ b/src/archon/commands/init/steps/harness_select.py
+@@ -8,8 +8,15 @@ from archon import log
+ from archon.commands.tooling.project_config import DEFAULT_HARNESS, LOOP_ROLES
+ 
+ _CODEX_HARNESS = "codex"
++_OPENCODE_HARNESS = "opencode"
+ _ANTIGRAVITY_HARNESS = "antigravity"
+-_FLAG_CHOICES = ("claude-code", _CODEX_HARNESS, _ANTIGRAVITY_HARNESS, "mixed")
++_FLAG_CHOICES = (
++    "claude-code",
++    _CODEX_HARNESS,
++    _ANTIGRAVITY_HARNESS,
++    _OPENCODE_HARNESS,
++    "mixed",
++)
+ _MIXED_ROLE_DEFAULTS = {
+     "plan": DEFAULT_HARNESS,
+     "prover": _CODEX_HARNESS,
+@@ -26,7 +33,9 @@ def selection_from_choice(choice: str, role_choices: dict | None = None):
+         return _CODEX_HARNESS
+     if normalized in ("3", _ANTIGRAVITY_HARNESS, "a"):
+         return _ANTIGRAVITY_HARNESS
+-    if normalized in ("4", "mixed", "m"):
++    if normalized in ("4", _OPENCODE_HARNESS, "o"):
++        return _OPENCODE_HARNESS
++    if normalized in ("5", "mixed", "m"):
+         roles = dict(role_choices or {})
+         return {r: roles[r] for r in LOOP_ROLES if r in roles}
+     raise ValueError(f"unknown harness choice {choice!r}")
+@@ -44,7 +53,8 @@ def _prompt_role_choices() -> dict:
+         default_letter = "x" if default_name == _CODEX_HARNESS else "c"
+         while True:
+             ans = typer.prompt(
+-                f"  {role:6s} engine - [c] claude-code  [x] codex  [a] antigravity",
++                f"  {role:6s} engine - [c] claude-code  [o] opencode  "
++                "[x] codex  [a] antigravity",
+                 default=default_letter,
+             ).strip().lower()
+             if ans in ("c", "claude-code", "claude"):
+@@ -53,6 +63,9 @@ def _prompt_role_choices() -> dict:
+             if ans in ("x", "codex"):
+                 choices[role] = _CODEX_HARNESS
+                 break
++            if ans in ("o", "opencode"):
++                choices[role] = _OPENCODE_HARNESS
++                break
+             if ans in ("a", "antigravity"):
+                 choices[role] = _ANTIGRAVITY_HARNESS
+                 break
+@@ -66,17 +79,18 @@ def prompt_harness_selection():
+     typer.echo("  [1] Claude Code + Opus      - default")
+     typer.echo("  [2] Codex CLI              - uses native ~/.codex login/default model")
+     typer.echo("  [3] Antigravity CLI        - deepmind native autonomous platform")
+-    typer.echo("  [4] Mixed                  - choose per-role (e.g. plan/review=claude, prover=codex)")
++    typer.echo("  [4] OpenCode               - uses native OpenCode login/default model")
++    typer.echo("  [5] Mixed                  - choose per-role")
+     typer.echo("")
+ 
+     while True:
+-        choice = typer.prompt("Choice (1/2/3/4)", default="1").strip().lower()
++        choice = typer.prompt("Choice (1/2/3/4/5)", default="1").strip().lower()
+         try:
+-            if choice in ("4", "mixed", "m"):
+-                return selection_from_choice("4", _prompt_role_choices())
++            if choice in ("5", "mixed", "m"):
++                return selection_from_choice("5", _prompt_role_choices())
+             return selection_from_choice(choice)
+         except ValueError:
+-            typer.echo("Please answer 1, 2, 3, or 4.")
++            typer.echo("Please answer 1, 2, 3, 4, or 5.")
+ 
+ 
+ def resolve_harness_selection(ctx):
+@@ -91,7 +105,7 @@ def resolve_harness_selection(ctx):
+             )
+             raise typer.Exit(1)
+         if normalized == "mixed":
+-            return selection_from_choice("4", _prompt_role_choices())
++            return selection_from_choice("5", _prompt_role_choices())
+         return selection_from_choice(normalized)
+     return prompt_harness_selection()
+ 
+diff --git a/src/archon/commands/init/steps/lean_lsp.py b/src/archon/commands/init/steps/lean_lsp.py
+index fd82183..4cdfc5e 100644
+--- a/src/archon/commands/init/steps/lean_lsp.py
++++ b/src/archon/commands/init/steps/lean_lsp.py
+@@ -16,6 +16,10 @@ class LeanLspMcpStep(InitStep):
+         ctx = self.ctx
+         log.phase(self.number, self.name)
+ 
++        if ctx.harness == "opencode":
++            log.success("OpenCode will configure archon-lean-lsp at runtime")
++            return
++
+         if not has("claude"):
+             log.warn(
+                 "Claude Code is not installed; skipping Claude MCP "
+diff --git a/src/archon/commands/init/steps/semantic_pass.py b/src/archon/commands/init/steps/semantic_pass.py
+index 926f763..7ea0797 100644
+--- a/src/archon/commands/init/steps/semantic_pass.py
++++ b/src/archon/commands/init/steps/semantic_pass.py
+@@ -66,6 +66,13 @@ class SemanticPassStep(InitStep):
+                 "            /archon-lean4:doctor to verify the full setup before exiting."
+             )
+ 
++        if ctx.harness == "opencode":
++            verification_instruction = (
++                "When you have finished the init steps, verify the project with "
++                "`lake build` and the archon-lean-lsp MCP tools. Do not invoke "
++                "`claude`, Claude plugins, or Claude slash commands."
++            )
++
+         prompt = textwrap.dedent(f"""\
+             You are in the init stage for project '{project_name}' at {ctx.project_path}. \
+             Read {ctx.state_dir}/AGENTS.md, then read {ctx.state_dir}/prompts/init.md and follow \
+diff --git a/src/archon/commands/init/steps/skills.py b/src/archon/commands/init/steps/skills.py
+index 22c9530..b5ecb4a 100644
+--- a/src/archon/commands/init/steps/skills.py
++++ b/src/archon/commands/init/steps/skills.py
+@@ -1,14 +1,22 @@
+-"""Install the Archon `lean4` skills bundle as a project-scoped Claude plugin."""
++"""Install the Archon `lean4` instructions for the selected harness."""
+ 
+ from __future__ import annotations
+ 
++import shutil
+ from pathlib import Path
+ 
+ import typer
+ 
+ from archon import log
+ 
+-from ..utils import copy_file, data_path, read_json, run, get_claude_config_dir
++from ..utils import (
++    copy_file,
++    data_path,
++    get_claude_config_dir,
++    has,
++    read_json,
++    run,
++)
+ from .base import InitStep
+ 
+ 
+@@ -20,7 +28,6 @@ class SkillsStep(InitStep):
+         ctx = self.ctx
+         log.phase(self.number, self.name)
+ 
+-        claude_dir = get_claude_config_dir()
+         skills_dir = data_path("skills")
+         plugin_json_path = skills_dir / "lean4" / ".claude-plugin" / "plugin.json"
+ 
+@@ -28,17 +35,102 @@ class SkillsStep(InitStep):
+             log.error("Archon lean4 skills not found in package data")
+             raise typer.Exit(1)
+ 
+-        (ctx.project_path / ".claude" / "skills").mkdir(parents=True, exist_ok=True)
+-        (ctx.project_path / ".claude" / "rules").mkdir(parents=True, exist_ok=True)
++        if ctx.harness == "opencode":
++            self._copy_opencode_skill(skills_dir)
++        elif has("claude"):
++            claude_dir = get_claude_config_dir()
++            (ctx.project_path / ".claude" / "skills").mkdir(parents=True, exist_ok=True)
++            (ctx.project_path / ".claude" / "rules").mkdir(parents=True, exist_ok=True)
++            self._register_marketplace(claude_dir, skills_dir)
++            self._install_plugin(claude_dir)
++        else:
++            log.step("Claude Code not installed; skipping Claude plugin registration")
+ 
+-        self._register_marketplace(claude_dir, skills_dir)
+-        self._install_plugin(claude_dir)
+         self._copy_archon_tools()
+         self._copy_subagent_descriptors()
++        if ctx.harness == "opencode":
++            self._rewrite_opencode_instructions()
+         self._cleanup_legacy_subagents()
+ 
+     # ── private ────────────────────────────────────────────────────────
+ 
++    def _copy_opencode_skill(self, skills_dir: Path) -> None:
++        src = skills_dir / "lean4" / "skills" / "lean4"
++        dst = self.ctx.project_path / ".opencode" / "skills" / "lean4"
++        if not src.is_dir():
++            log.error(f"OpenCode Lean skill not found: {src}")
++            raise typer.Exit(1)
++        shutil.copytree(
++            src,
++            dst,
++            dirs_exist_ok=True,
++            ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
++        )
++        log.success("Installed Lean4 instructions for OpenCode")
++
++    def _rewrite_opencode_instructions(self) -> None:
++        """Make copied project instructions use OpenCode-native paths."""
++        state_dir = self.ctx.state_dir
++        paths = [state_dir / "AGENTS.md"]
++        paths.extend(sorted((state_dir / "prompts").glob("*.md")))
++        replacements = {
++            (
++                "- Under Claude Code, skills in `.claude/skills/` override "
++                "globally installed plugins."
++            ): (
++                "- Under OpenCode, `.opencode/skills/` supplies project-local "
++                "skills."
++            ),
++            (
++                "- Under Claude Code, rules in `.claude/rules/` apply only "
++                "to this project."
++            ): "- OpenCode project-local configuration lives under `.opencode/`.",
++            (
++                "- **archon-lean4** — under Claude Code this is installed as "
++                "the `lean4@archon-local` plugin (live-linked to Archon source), "
++                "providing slash commands `/archon-lean4:prove`, "
++                "`/archon-lean4:golf`, `/archon-lean4:doctor`, etc. Under other "
++                "harnesses the slash-command surface is absent; the underlying "
++                "skill scripts are still on disk under `.claude/skills/` and "
++                "can be run directly from the shell."
++            ): (
++                "- **archon-lean4** — OpenCode loads the project skill from "
++                "`.opencode/skills/lean4/SKILL.md`; helper scripts are exposed "
++                "through `$LEAN4_SCRIPTS`, and Lean-LSP is injected at runtime."
++            ),
++            (
++                "Project tools live in `.claude/tools/` as directly-executable "
++                "scripts — that path is the same whatever harness you run under. "
++                "List with `ls .claude/tools/`; run `<path> --help`. MCP servers "
++                "(Lean LSP, etc.) surface as `mcp__*` tools: under Claude Code "
++                "they are registered in `.claude/settings.json` / `.mcp.json`; "
++                "under other harnesses the loop wires the same servers in at launch."
++            ): (
++                "Project tools live in `.opencode/tools/` as directly-executable "
++                "scripts. List them with `ls .opencode/tools/`; run `<path> "
++                "--help`. The loop injects Lean-LSP and other configured MCP "
++                "servers when it launches OpenCode."
++            ),
++            "├── .claude/": "├── .opencode/",
++            (
++                'Exit your agent CLI (in Claude Code, `/exit` or `Ctrl+D`). '
++                "Then start the loop"
++            ): "Exit the current agent CLI. Then start the loop",
++            ".claude/tools/": ".opencode/tools/",
++        }
++        changed = 0
++        for path in paths:
++            if not path.is_file():
++                continue
++            text = path.read_text(encoding="utf-8")
++            updated = text
++            for old, new in replacements.items():
++                updated = updated.replace(old, new)
++            if updated != text:
++                path.write_text(updated, encoding="utf-8")
++                changed += 1
++        log.success(f"Rewrote {changed} project instruction file(s) for OpenCode")
++
+     def _register_marketplace(self, claude_dir: Path, skills_dir: Path) -> None:
+         log.step("Registering archon-local marketplace")
+         market_needs_update = True
+@@ -91,16 +183,17 @@ class SkillsStep(InitStep):
+     _SUBAGENT_WRAPPER_STEM = "subagent_wrapper"
+ 
+     def _copy_archon_tools(self) -> None:
+-        """Copy every Archon tool script into the project's .claude/tools/.
++        """Copy every Archon tool script into the selected harness's tool dir.
+ 
+         Each script in our package's ``data/tools/`` becomes
+-        ``.claude/tools/archon-<stem-with-dashes>.py`` in the project,
++        ``<tool-dir>/archon-<stem-with-dashes>.py`` in the project,
+         with the wrapper installed once as ``archon-subagent.py``
+         (no per-role copies anymore — the wrapper takes ``--name``).
+         """
+         ctx = self.ctx
+         tools_src = data_path("tools")
+-        tools_dst = ctx.project_path / ".claude" / "tools"
++        harness_dir = ".opencode" if ctx.harness == "opencode" else ".claude"
++        tools_dst = ctx.project_path / harness_dir / "tools"
+         tools_dst.mkdir(parents=True, exist_ok=True)
+ 
+         if not tools_src.is_dir():
+diff --git a/src/archon/commands/loop/entry.py b/src/archon/commands/loop/entry.py
+index 3c7a1ce..a2074c5 100644
+--- a/src/archon/commands/loop/entry.py
++++ b/src/archon/commands/loop/entry.py
+@@ -115,14 +115,14 @@ def loop(
+     ),
+     resume: bool = typer.Option(
+         False, "--resume",
+-        help="Resume the previous iteration's Claude session. Without "
++        help="Resume the previous iteration's harness session. Without "
+              "--from, auto-detects which phase to resume by scanning the "
+              "prior iter's meta.json for the first plan/prover/review whose "
+              "status isn't 'done' (i.e. the one that crashed). With "
+              "--from <phase>, resumes that specific phase. Reuses the prior "
+-             "iter-NNN dir, looks up the stored session id, and invokes "
+-             "claude with --resume <id> plus a short 'continue from where "
+-             "you left off' prompt instead of re-priming with the full "
++             "iter-NNN dir, looks up the stored session id, and asks the "
++             "configured harness to continue with a short prompt instead "
++             "of re-priming with the full "
+              "phase prompt. Falls back to a fresh run when no session id is "
+              "stored. Only affects the FIRST iteration; subsequent "
+              "iterations run plan/prover/review fresh.",
+@@ -182,9 +182,11 @@ def loop(
+     # can distinguish an explicit --no-review from an unset one.
+     from archon.commands.tooling.env_loader import load_env_file as _load_env
+     from archon.commands.tooling.project_config import (
++        load_harness_descriptor,
+         load_project_config,
+         resolve as _resolve,
+         resolve_claude_backend,
++        resolve_role_harness,
+     )
+ 
+     project_config = load_project_config(resolved)
+@@ -219,6 +221,16 @@ def loop(
+     # purely through .archon/config.json.
+     multilane_lanes = multilane_cfg.get('lanes') or []
+     multilane_execute = bool(multilane_cfg.get('enabled')) and len(multilane_lanes) >= 1
++    prover_harness = resolve_role_harness(project_config, "prover")
++    prover_runner = load_harness_descriptor(
++        project_config, prover_harness,
++    ).runner
++    if multilane_execute and prover_runner == "opencode":
++        log.warn(
++            "Multi-lane is disabled in OpenCode mode; refusing to fall back "
++            "to its Claude-only lane runner."
++        )
++        multilane_execute = False
+ 
+     # The interactive backend hands the terminal to a human, who can only
+     # drive one session at a time — force serial provers (parallel=False,
+diff --git a/src/archon/commands/loop/phases/plan.py b/src/archon/commands/loop/phases/plan.py
+index cc3f994..3d413bb 100644
+--- a/src/archon/commands/loop/phases/plan.py
++++ b/src/archon/commands/loop/phases/plan.py
+@@ -213,6 +213,7 @@ class PlanPhase(Phase):
+                 label="plan",
+                 cwd=ctx.project_path,
+                 jsonl_fallback=Path(str(plan_log) + ".jsonl"),
++                runner=ctx.harness_descriptor_for("plan").runner,
+             )
+             ctx.make_agent("plan").run(
+                 PLAN_CONTINUE if resume_sid else plan_prompt,
+diff --git a/src/archon/commands/loop/phases/review.py b/src/archon/commands/loop/phases/review.py
+index 5737596..ad975bc 100644
+--- a/src/archon/commands/loop/phases/review.py
++++ b/src/archon/commands/loop/phases/review.py
+@@ -159,6 +159,7 @@ class ReviewPhase(Phase):
+             label="review",
+             cwd=ctx.project_path,
+             jsonl_fallback=Path(str(review_log) + ".jsonl"),
++            runner=ctx.harness_descriptor_for("review").runner,
+         )
+         ctx.make_agent("review").run(
+             REVIEW_CONTINUE if resume_sid else prompt,
+diff --git a/src/archon/commands/loop/prover/runners.py b/src/archon/commands/loop/prover/runners.py
+index 2142353..4cbc195 100644
+--- a/src/archon/commands/loop/prover/runners.py
++++ b/src/archon/commands/loop/prover/runners.py
+@@ -174,6 +174,7 @@ class SerialProverRunner:
+             enabled=self.resume_enabled, label="prover",
+             cwd=self.project_path,
+             jsonl_fallback=Path(str(prover_log) + ".jsonl"),
++            runner=self.harness.runner,
+         )
+         with ProverEnvironment(
+             snap_dir=self.iter_dir / "snapshots",
+@@ -383,6 +384,7 @@ class ParallelProverRunner:
+             enabled=self.resume_enabled, label=f"prover[{slug}]",
+             cwd=self.project_path,
+             jsonl_fallback=Path(str(prover_log) + ".jsonl"),
++            runner=self.harness.runner,
+         )
+         with ProverEnvironment(
+             snap_dir=snap_dir,
+@@ -463,6 +465,7 @@ class ParallelProverRunner:
+                     enabled=self.resume_enabled, label=f"prover[{slug}]",
+                     cwd=self.project_path,
+                     jsonl_fallback=Path(str(prover_log) + ".jsonl"),
++                    runner=self.harness.runner,
+                 )
+                 if resume_sid:
+                     submit_prompt = PROVER_CONTINUE
+diff --git a/src/archon/commands/loop/resume.py b/src/archon/commands/loop/resume.py
+index 2426dc7..8cbce36 100644
+--- a/src/archon/commands/loop/resume.py
++++ b/src/archon/commands/loop/resume.py
+@@ -1,7 +1,7 @@
+ """Helpers for the ``archon loop --resume`` flag.
+ 
+-Each phase calls :func:`pick_resume_session` before invoking the Claude
+-agent to decide whether to pass ``--resume <id>`` and replace the
++Each phase calls :func:`pick_resume_session` before invoking the configured
++harness to decide whether to pass its session id and replace the
+ priming prompt with a short continuation. After the agent returns, the
+ phase calls :func:`persist_session_id` to record the new (or continued)
+ session id in ``meta.json`` so a future ``--resume`` can find it.
+@@ -11,11 +11,10 @@ When ``--resume`` is passed without ``--from``,
+ the prior iter's ``meta.json`` — the first of plan / prover / review
+ whose status isn't ``"done"`` is the one that crashed.
+ 
+-The continuation prompts deliberately stay short: Claude Code's
+-``--resume`` replays the prior conversation into the model's context,
+-so re-priming with the full plan/prover/review prompt would just
+-duplicate instructions. Each prompt only nudges the model to refresh
+-state files that may have changed since the crash.
++The continuation prompts deliberately stay short because resuming replays the
++prior conversation into the model's context. Re-priming with the full
++plan/prover/review prompt would duplicate instructions. Each prompt only nudges
++the model to refresh state files that may have changed since the crash.
+ """
+ 
+ from __future__ import annotations
+@@ -62,6 +61,7 @@ def pick_resume_session(
+     label: str,
+     cwd: Path | None = None,
+     jsonl_fallback: Path | None = None,
++    runner: str = "claude-code",
+ ) -> str | None:
+     """Return the stored session id for this phase, or None.
+ 
+@@ -73,13 +73,12 @@ def pick_resume_session(
+     warning and falls back to fresh — matching the user's request that
+     --resume degrade gracefully on missing state.
+ 
+-    ``cwd`` is the project root (the working directory Claude Code was
+-    invoked from). When given, the function also verifies the session's
+-    JSONL file actually exists in Claude Code's store
++    For the ``claude-code`` runner, ``cwd`` is the project root and the
++    function also verifies the session's JSONL file exists in Claude's store
+     (``~/.claude/projects/<sanitized-cwd>/<sid>.jsonl``). If the file
+-    is missing, the stored id is stale (Claude Code's session log was
+-    rotated / cleaned) and passing it to ``claude --resume`` would
+-    error out. We warn and fall back to fresh instead.
++    is missing, the stored id is stale and the function falls back to a fresh
++    run. Other runners validate their own session id when invoked; applying
++    Claude's private store layout to them would reject valid sessions.
+ 
+     ``jsonl_fallback`` is the path to the phase's stream JSONL log
+     (e.g. ``iter-NNN/plan.jsonl``). When the meta key is missing —
+@@ -104,7 +103,11 @@ def pick_resume_session(
+             return None
+         recovered_from_jsonl = True
+ 
+-    if cwd is not None and not _claude_session_exists(cwd, sid):
++    if (
++        runner == "claude-code"
++        and cwd is not None
++        and not _claude_session_exists(cwd, sid)
++    ):
+         log.warn(
+             f"--resume requested for {label}, but Claude Code has no "
+             f"session log for id {sid[:8]}… in its store "
+diff --git a/src/archon/commands/tooling/project_config.py b/src/archon/commands/tooling/project_config.py
+index bd61f82..e43675d 100644
+--- a/src/archon/commands/tooling/project_config.py
++++ b/src/archon/commands/tooling/project_config.py
+@@ -220,6 +220,15 @@ def default_config() -> dict[str, Any]:
+                 "(all roles) or  \"loop\": {\"roles\": {\"prover\": \"codex\"}}  "
+                 "(one role). 'codex' is built in. See docs/CONFIGURATION.md §2."
+             ),
++            'opencode': {
++                'runner': 'opencode',
++                'mcp': 'lean-lsp',
++                'prompt_variant': 'opencode',
++                '_env': (
++                    "Uses your native OpenCode provider login and default "
++                    "model. To force one, set model to provider/model."
++                ),
++            },
+             'codex': {
+                 'runner': 'codex',
+                 'effort': 'xhigh',
+@@ -284,7 +293,7 @@ def render_default_config() -> str:
+ # ── harness selection (used by `archon init`) ─────────────────────────
+ 
+ LOOP_ROLES = ('plan', 'prover', 'review')
+-SHIPPED_HARNESSES = ('codex', 'antigravity')
++SHIPPED_HARNESSES = ('opencode', 'codex', 'antigravity')
+ 
+ 
+ def apply_harness_selection(cfg: dict[str, Any], selection: Any) -> None:
+diff --git a/src/archon/prompts.py b/src/archon/prompts.py
+index 88ba6db..fddec1e 100644
+--- a/src/archon/prompts.py
++++ b/src/archon/prompts.py
+@@ -699,6 +699,21 @@ def _iter_sidecar_context_block(
+     return body
+ 
+ 
++def _subagent_wrapper_path(project_path: Path, *, role: str) -> str:
++    """Return the harness-native path to Archon's blocking subagent wrapper."""
++    from archon.commands.tooling.project_config import (
++        load_harness_descriptor,
++        load_project_config,
++        resolve_role_harness,
++    )
++
++    cfg = load_project_config(project_path)
++    harness = resolve_role_harness(cfg, role)
++    runner = load_harness_descriptor(cfg, harness).runner
++    directory = ".opencode/tools" if runner == "opencode" else ".claude/tools"
++    return f"{directory}/archon-subagent.py"
++
++
+ def _subagent_catalog_block(project_path: Path, *, role: str) -> str:
+     """Render the available-subagents catalog for a phase agent.
+ 
+@@ -808,7 +823,9 @@ def _subagent_catalog_block(project_path: Path, *, role: str) -> str:
+     )
+     lines.append("")
+     lines.append("```")
+-    lines.append("python3 .claude/tools/archon-subagent.py \\")
++    lines.append(
++        f"python3 {_subagent_wrapper_path(project_path, role=role)} \\"
++    )
+     lines.append("  --name <name> \\")
+     lines.append("  --slug <kebab-slug> \\")
+     lines.append("  --directive-file <path-to-directive.md> \\")
+@@ -1398,11 +1415,12 @@ def build_plan_prompt(
+             - Plan only from the main project state, the current .lean files, and the standard Archon state files.
+             - Keep the plan lane-agnostic unless the user explicitly asks otherwise.""")
+ 
++    subagent_wrapper = _subagent_wrapper_path(project_path, role="plan")
+     no_directive_block = dedent(f"""
+ 
+         HARD RULE — refactors:
+         - You MUST NOT write to {state_dir}/REFACTOR_DIRECTIVE.md. That file is a leftover from an older Archon flow and is only used by the interactive `archon refactor draft` command the mathematician runs by hand.
+-        - The autonomous loop's way to refactor is to dispatch the `refactor` subagent the same way as any other subagent: write its directive to `.archon/logs/iter-NNN/refactor-<slug>-directive.md`, then run the blocking `python3 .claude/tools/archon-subagent.py --name refactor --slug <slug> --directive-file … --write-domain '<glob>'` Bash call (see prompts/plan.md § "Subagent delegation"). The native `Agent`/`Task` tool is disabled — do NOT try to invoke the subagent through it. The per-iter `logs/iter-NNN/` directive file is correct; the standalone `REFACTOR_DIRECTIVE.md` is the deprecated flow to avoid.
++        - The autonomous loop's way to refactor is to dispatch the `refactor` subagent the same way as any other subagent: write its directive to `.archon/logs/iter-NNN/refactor-<slug>-directive.md`, then run the blocking `python3 {subagent_wrapper} --name refactor --slug <slug> --directive-file … --write-domain '<glob>'` Bash call (see prompts/plan.md § "Subagent delegation"). The native `Agent`/`Task` tool is disabled — do NOT try to invoke the subagent through it. The per-iter `logs/iter-NNN/` directive file is correct; the standalone `REFACTOR_DIRECTIVE.md` is the deprecated flow to avoid.
+         - If the existing {state_dir}/REFACTOR_DIRECTIVE.md, STRATEGY.md, task_pending.md, or PROGRESS.md contain references to the old REFACTOR_DIRECTIVE.md flow (e.g. "write the directive then the refactor agent will pick it up"), treat those as historical noise: prune them when you rewrite those files, and do NOT reproduce that pattern this iteration.""")
+ 
+     sidecar_block = _iter_sidecar_context_block(

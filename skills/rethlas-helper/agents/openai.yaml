@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rethlas Helper / Rethlas 助手"
+  short_description: "Guide Rethlas setup · 引导运行选择、API 与补丁"
+  default_prompt: "Use $rethlas-helper to detect my Rethlas runtime, guide my own provider/API setup, and ask conditionally about the OpenCode patch; 中文请求请用中文引导。"
