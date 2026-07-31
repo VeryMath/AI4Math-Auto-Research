@@ -7,7 +7,7 @@
 [English](README.md) · [贡献者](CONTRIBUTORS.md) · [技能包](#技能包) · [安装](#安装) · [快速开始](#快速开始) · [参考资料](#相关公开参考资料) · [安全边界](#安全边界)
 
 ![version](https://img.shields.io/badge/version-0.1.0-blue)
-![skills](https://img.shields.io/badge/skills-7-2ea44f)
+![skills](https://img.shields.io/badge/skills-8-2ea44f)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
 </div>
@@ -30,7 +30,8 @@
 | [`agent-laboratory-workflow`](skills/agent-laboratory-workflow/) | 部署、验证并启动有边界的 Agent Laboratory 自动研究运行。 | [`README`](skills/agent-laboratory-workflow/README.md) · [`SKILL`](skills/agent-laboratory-workflow/SKILL.md) |
 | [`discover-math-problems`](skills/discover-math-problems/) | 把模糊背景转为候选问题、猜想格、证据台账和后续工作单。 | [`README`](skills/discover-math-problems/README.md) · [`SKILL`](skills/discover-math-problems/SKILL.md) |
 | [`proof-blueprint-review`](skills/proof-blueprint-review/) | 生成证明蓝图、执行 verifier-style review、记录修复提示并给出严格证明状态。 | [`README`](skills/proof-blueprint-review/README.md) · [`SKILL`](skills/proof-blueprint-review/SKILL.md) |
-| [`rethlas-opencode-adapter`](skills/rethlas-opencode-adapter/) | 克隆、适配、配置并监督通过 OpenCode 运行的 FrenzyMath Rethlas。 | [`README`](skills/rethlas-opencode-adapter/README.md) · [`SKILL`](skills/rethlas-opencode-adapter/SKILL.md) |
+| [`rethlas-helper`](skills/rethlas-helper/) | 安装和配置 Rethlas，选择 Codex 或 OpenCode，安全管理 OpenCode 增量补丁，并引导证明生成流程。 | [`SKILL`](skills/rethlas-helper/SKILL.md) |
+| [`archon-helper`](skills/archon-helper/) | 安装和配置 Archon，选择 Claude Code 或 OpenCode，应用兼容补丁，并引导形式化工作流。 | [`SKILL`](skills/archon-helper/SKILL.md) |
 | [`graph-theory-researcher`](skills/graph-theory-researcher/) | 阅读图论论文，通过用户检查点选择问题，开展有边界研究并生成可核验 LaTeX/PDF。 | [`README`](skills/graph-theory-researcher/README.md) · [`SKILL`](skills/graph-theory-researcher/SKILL.md) |
 | [`extremal-graph-problem-suggester`](skills/extremal-graph-problem-suggester/) | 为极值图论问题生成“小改动”候选变体，并检查引用、新颖性与可行性边界。 | [`README`](skills/extremal-graph-problem-suggester/README.md) · [`SKILL`](skills/extremal-graph-problem-suggester/SKILL.md) |
 | [`open-problem-research-pipeline`](skills/open-problem-research-pipeline/) | 对数学公开问题执行文献搜索、方法分析、证明框架和报告组装的分阶段流程。 | [`README`](skills/open-problem-research-pipeline/README.md) · [`SKILL`](skills/open-problem-research-pipeline/SKILL.md) |
@@ -48,7 +49,8 @@ Skill 路径：
 - skills/agent-laboratory-workflow
 - skills/discover-math-problems
 - skills/proof-blueprint-review
-- skills/rethlas-opencode-adapter
+- skills/rethlas-helper
+- skills/archon-helper
 - skills/graph-theory-researcher
 - skills/extremal-graph-problem-suggester
 - skills/open-problem-research-pipeline
@@ -71,7 +73,8 @@ mkdir -p ~/.codex/skills
 ln -s "$PWD/skills/agent-laboratory-workflow" ~/.codex/skills/agent-laboratory-workflow
 ln -s "$PWD/skills/discover-math-problems" ~/.codex/skills/discover-math-problems
 ln -s "$PWD/skills/proof-blueprint-review" ~/.codex/skills/proof-blueprint-review
-ln -s "$PWD/skills/rethlas-opencode-adapter" ~/.codex/skills/rethlas-opencode-adapter
+ln -s "$PWD/skills/rethlas-helper" ~/.codex/skills/rethlas-helper
+ln -s "$PWD/skills/archon-helper" ~/.codex/skills/archon-helper
 ln -s "$PWD/skills/graph-theory-researcher" ~/.codex/skills/graph-theory-researcher
 ln -s "$PWD/skills/extremal-graph-problem-suggester" ~/.codex/skills/extremal-graph-problem-suggester
 ln -s "$PWD/skills/open-problem-research-pipeline" ~/.codex/skills/open-problem-research-pipeline
@@ -106,10 +109,16 @@ Agent Laboratory 运行从这里开始：
 skills/agent-laboratory-workflow/SKILL.md
 ```
 
-通过 OpenCode 运行 Rethlas 从这里开始：
+Rethlas 安装配置以及 Codex/OpenCode 使用引导从这里开始：
 
 ```text
-skills/rethlas-opencode-adapter/SKILL.md
+skills/rethlas-helper/SKILL.md
+```
+
+Archon 安装配置以及 Claude Code/OpenCode 使用引导从这里开始：
+
+```text
+skills/archon-helper/SKILL.md
 ```
 
 课程贡献的图论与公开问题工作流从这里开始：
@@ -131,7 +140,8 @@ AI4Math-Auto-Research/
     ├── agent-laboratory-workflow/
     ├── discover-math-problems/
     ├── proof-blueprint-review/
-    ├── rethlas-opencode-adapter/
+    ├── rethlas-helper/
+    ├── archon-helper/
     ├── graph-theory-researcher/
     ├── extremal-graph-problem-suggester/
     └── open-problem-research-pipeline/

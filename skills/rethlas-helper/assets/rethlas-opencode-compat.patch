@@ -1,0 +1,1139 @@
+diff --git a/README.opencode.md b/README.opencode.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..2ecba980417c4e28ed5155915cd94538386e7438
+--- /dev/null
++++ b/README.opencode.md
+@@ -0,0 +1,167 @@
++# Rethlas with OpenCode
++
++[简体中文](README.opencode.zh-CN.md)
++
++This is an additive OpenCode runtime for Rethlas. The original Codex
++configuration, agents, scripts, and documentation remain unchanged.
++
++## Runtime layout
++
++The two entry points are:
++
++- generation: `agents/generation/tests/run_example_opencode.sh`
++- verification API: `agents/verification/api/server_opencode.py`
++
++OpenCode-specific configuration lives in:
++
++- `agents/generation/opencode.json`
++- `agents/verification/opencode.json`
++
++Shared `AGENTS.md`, generic skills, MCP Python servers, problem data, schemas,
++and the Zola result site are reused.
++
++## Prerequisites
++
++Install OpenCode, then connect your own coding plan or API provider. The patch
++does not hardcode a provider or model. When no per-run model is supplied,
++OpenCode uses the model selected by your own user-level configuration.
++
++Check the installation, authentication state, and available models:
++
++```bash
++opencode --version
++opencode auth list
++opencode models
++```
++
++Use `/connect` in the OpenCode TUI to sign in to a supported plan or configure
++an API provider. Keep API keys in OpenCode's user-level credential store; do
++not put them in this repository.
++
++## 1. Start the OpenCode verification service
++
++Create the verification environment:
++
++```bash
++cd agents/verification
++python3 -m venv .venv
++source .venv/bin/activate
++pip install -r requirements.txt
++```
++
++Start the OpenCode-backed API on the same local-only port used by the Codex
++workflow:
++
++```bash
++uvicorn api.server_opencode:app --host 127.0.0.1 --port 8091
++```
++
++Do not run the Codex and OpenCode verification APIs simultaneously because
++both use port 8091.
++
++## 2. Run the included example
++
++In another terminal:
++
++```bash
++cd agents/generation
++python3 -m venv .venv
++source .venv/bin/activate
++pip install -r mcp/requirements.txt
++./tests/run_example_opencode.sh
++```
++
++The OpenCode runner:
++
++- runs `opencode run` in `agents/generation`
++- parses the OpenCode JSON event stream for the session id
++- resumes the same session with `--session`
++- alternates retrieval-disabled and retrieval-enabled agents
++- enables OpenCode web search through `OPENCODE_ENABLE_EXA=1`
++- stops when the OpenCode-isolated verified blueprint exists
++
++For `data/example.md`, OpenCode uses:
++
++```text
++problem_id=opencode/example
++memory/opencode/example/
++results/opencode/example/
++logs/opencode/example/
++```
++
++The Codex workflow continues to use `problem_id=example`, so the two sets of
++generation artifacts do not collide.
++
++## 3. Run another problem
++
++```bash
++PROBLEM_FILE=data/modrep/modrep.md ./tests/run_example_opencode.sh
++```
++
++The original reference-directory convention is preserved:
++
++```text
++data/modrep/modrep.md
++data/modrep/modrep.refs/
++```
++
++## Provider and model configuration
++
++With no environment override, generation and verification each use OpenCode's
++configured default model. To pin a model for either process without editing
++project files, use its OpenCode `provider/model` id:
++
++```bash
++OPENCODE_GENERATION_MODEL="provider/model" \
++  ./tests/run_example_opencode.sh
++```
++
++```bash
++OPENCODE_VERIFICATION_MODEL="provider/model" \
++  uvicorn api.server_opencode:app --host 127.0.0.1 --port 8091
++```
++
++Generation and verification are separate OpenCode processes. Set both
++variables when you want both sides pinned to the same model.
++
++Only set a variant when the selected model exposes that variant:
++
++```bash
++OPENCODE_GENERATION_VARIANT=high ./tests/run_example_opencode.sh
++```
++
++```bash
++OPENCODE_VERIFICATION_VARIANT=high \
++  uvicorn api.server_opencode:app --host 127.0.0.1 --port 8091
++```
++
++Leave `OPENCODE_GENERATION_MODEL`, `OPENCODE_VERIFICATION_MODEL`, and their
++variant variables unset to use the user's OpenCode configuration.
++
++## OpenCode compatibility layer
++
++OpenCode automatically discovers the existing generic skills under
++`.agents/skills/`. It also loads:
++
++- `AGENTS.opencode.md` through the `instructions` field
++- `.opencode/skills/recursive-proving-opencode/SKILL.md`
++
++The compatibility instructions map the MCP-prefixed OpenCode tool names and
++replace the Codex-specific recursive-proving skill. All other shared skills
++remain unchanged. The replacement skill carries an explicit recursion counter
++in task prompts. A three-agent permission chain prevents child-task creation
++beyond depth 3.
++
++## Return to Codex
++
++The original commands are unchanged:
++
++```bash
++cd agents/verification
++uvicorn api.server:app --host 127.0.0.1 --port 8091
++```
++
++```bash
++cd agents/generation
++./tests/run_example.sh
++```
+diff --git a/README.opencode.zh-CN.md b/README.opencode.zh-CN.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..75fd10ffaaa8ed2904c008a1e869c2365a1bac19
+--- /dev/null
++++ b/README.opencode.zh-CN.md
+@@ -0,0 +1,160 @@
++# Rethlas 的 OpenCode 版本
++
++[English](README.opencode.md)
++
++这是一套以增量方式加入 Rethlas 的 OpenCode 运行环境。原有 Codex
++配置、代理、脚本和文档均保持不变。
++
++## 运行结构
++
++两个入口文件如下：
++
++- 生成：`agents/generation/tests/run_example_opencode.sh`
++- 验证 API：`agents/verification/api/server_opencode.py`
++
++OpenCode 专用配置位于：
++
++- `agents/generation/opencode.json`
++- `agents/verification/opencode.json`
++
++现有的 `AGENTS.md`、通用 skills、MCP Python 服务、题目数据、schemas
++和 Zola 结果站点会继续复用。
++
++## 前置条件
++
++安装 OpenCode，然后连接用户自己的 coding plan 或 API provider。补丁不会
++硬编码 provider 或模型。没有传入单次运行模型时，OpenCode 使用用户级配置
++中选择的模型。
++
++检查 OpenCode 安装、登录状态和可用模型：
++
++```bash
++opencode --version
++opencode auth list
++opencode models
++```
++
++在 OpenCode TUI 中使用 `/connect`，登录支持的计划或配置 API provider。
++API key 保存在 OpenCode 用户级凭据存储中，不要写入本仓库。
++
++## 1. 启动 OpenCode 验证服务
++
++创建验证环境：
++
++```bash
++cd agents/verification
++python3 -m venv .venv
++source .venv/bin/activate
++pip install -r requirements.txt
++```
++
++在 Codex 工作流使用的本机端口上启动 OpenCode 验证 API：
++
++```bash
++uvicorn api.server_opencode:app --host 127.0.0.1 --port 8091
++```
++
++Codex 和 OpenCode 验证 API 都使用 8091 端口，请勿同时运行。
++
++## 2. 运行附带的示例
++
++在另一个终端中执行：
++
++```bash
++cd agents/generation
++python3 -m venv .venv
++source .venv/bin/activate
++pip install -r mcp/requirements.txt
++./tests/run_example_opencode.sh
++```
++
++OpenCode 启动脚本会：
++
++- 在 `agents/generation` 中运行 `opencode run`
++- 从 OpenCode JSON 事件流中解析 session id
++- 通过 `--session` 恢复同一个会话
++- 交替调用关闭检索和开启检索的代理
++- 通过 `OPENCODE_ENABLE_EXA=1` 启用 OpenCode 网页搜索
++- 在生成 OpenCode 隔离的已验证 blueprint 后停止
++
++对于 `data/example.md`，OpenCode 使用以下路径：
++
++```text
++problem_id=opencode/example
++memory/opencode/example/
++results/opencode/example/
++logs/opencode/example/
++```
++
++Codex 工作流继续使用 `problem_id=example`，两套生成产物不会相互覆盖。
++
++## 3. 运行其他题目
++
++```bash
++PROBLEM_FILE=data/modrep/modrep.md ./tests/run_example_opencode.sh
++```
++
++原有参考资料目录约定保持不变：
++
++```text
++data/modrep/modrep.md
++data/modrep/modrep.refs/
++```
++
++## Provider 与模型配置
++
++没有设置环境变量时，生成和验证分别使用 OpenCode 配置的默认模型。需要固定
++其中一个进程的模型时，使用 OpenCode 的 `provider/model` 标识，无需编辑
++项目文件：
++
++```bash
++OPENCODE_GENERATION_MODEL="provider/model" \
++  ./tests/run_example_opencode.sh
++```
++
++```bash
++OPENCODE_VERIFICATION_MODEL="provider/model" \
++  uvicorn api.server_opencode:app --host 127.0.0.1 --port 8091
++```
++
++生成和验证是两个独立的 OpenCode 进程。希望两侧固定使用同一个模型时，需要
++同时设置两个变量。
++
++只有所选模型提供相应 variant 时才设置 variant：
++
++```bash
++OPENCODE_GENERATION_VARIANT=high ./tests/run_example_opencode.sh
++```
++
++```bash
++OPENCODE_VERIFICATION_VARIANT=high \
++  uvicorn api.server_opencode:app --host 127.0.0.1 --port 8091
++```
++
++不设置 `OPENCODE_GENERATION_MODEL`、`OPENCODE_VERIFICATION_MODEL`
++及对应 variant 变量时，使用用户自己的 OpenCode 配置。
++
++## OpenCode 兼容层
++
++OpenCode 会自动发现 `.agents/skills/` 下现有的通用 skills，并额外加载：
++
++- 通过 `instructions` 字段加载 `AGENTS.opencode.md`
++- `.opencode/skills/recursive-proving-opencode/SKILL.md`
++
++兼容说明负责映射带 MCP 前缀的 OpenCode 工具名称，并替换 Codex 专用的
++recursive-proving skill。其他共享 skills 保持不变。替代 skill 会在 task
++提示词中显式传递递归计数器。三层代理权限链会阻止深度超过 3 的子任务创建。
++
++## 返回 Codex
++
++原有命令保持不变：
++
++```bash
++cd agents/verification
++uvicorn api.server:app --host 127.0.0.1 --port 8091
++```
++
++```bash
++cd agents/generation
++./tests/run_example.sh
++```
+diff --git a/agents/generation/.opencode/skills/recursive-proving-opencode/SKILL.md b/agents/generation/.opencode/skills/recursive-proving-opencode/SKILL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..71e8f1ab8f0b06453e56cc05a4bfd0057dfdd919
+--- /dev/null
++++ b/agents/generation/.opencode/skills/recursive-proving-opencode/SKILL.md
+@@ -0,0 +1,87 @@
++---
++name: recursive-proving-opencode
++description: Launch one OpenCode subagent per decomposition plan after direct screening has identified the key stuck points for each plan. Use when all current plans have been screened by direct proving, none fully solves the problem, and parallel recursive work is needed.
++compatibility: opencode
++---
++
++# Recursive Proving with OpenCode
++
++Use this skill when direct proving has failed on every current decomposition
++plan. This is the OpenCode counterpart of the Codex-specific
++`recursive-proving` skill.
++
++## Input contract
++
++Read:
++
++- the current set of decomposition plans
++- the direct-proving reports and key stuck points for each plan
++- the known stuck points from other plans
++- relevant `failed_paths`, `branch_states`, and search results
++
++## Procedure
++
++1. Confirm that every current decomposition plan has already been attempted
++   with `$direct-proving` and that none has fully solved the problem.
++2. Use OpenCode's `task` tool to invoke one `subgoal-prover` subagent per
++   decomposition plan. Set `recursion_depth=1` and
++   `maximum_recursion_depth=3` in every initial task prompt.
++3. Give each subagent:
++   - the complete target theorem
++   - the exact OpenCode `problem_id`
++   - its assigned decomposition plan
++   - the key stuck points for its own plan
++   - the key stuck points found in the other plans
++   - the current `recursion_depth` and `maximum_recursion_depth=3`
++   - the instruction to follow `AGENTS.md` and `AGENTS.opencode.md`
++4. Tell each subagent to continue from the assigned plan rather than restart
++   the search from zero. It may refine or locally revise the plan when evidence
++   justifies that change, but it must preserve continuity with the assigned
++   approach.
++5. A subagent may recurse through the `task` tool only when recursion is
++   genuinely useful:
++   - `subgoal-prover` at depth 1 may invoke `subgoal-prover-depth-2`.
++   - `subgoal-prover-depth-2` may invoke `subgoal-prover-depth-3`.
++   - `subgoal-prover-depth-3` cannot create another child task.
++   The child prompt must increment `recursion_depth` by one. At depth 3,
++   continue locally.
++6. Require every subagent to write progress, failures, and successful proof
++   developments to shared memory using the same OpenCode-prefixed `problem_id`.
++7. Delegate independent plans independently. Gather every returned report
++   before selecting the next parent action.
++8. If any plan succeeds, assemble the proof draft from that plan.
++9. If all plans fail, hand the collected reports to
++   `$identify-key-failures`.
++
++## Output contract
++
++Append an `events` record for the recursive round:
++
++```json
++{
++  "event_type": "recursive_proving_round",
++  "plan_ids": ["..."],
++  "subagent_ids": ["..."],
++  "shared_stuck_points": {
++    "plan_id": ["..."]
++  },
++  "status": "running|completed",
++  "successful_plan_ids": ["..."],
++  "failed_plan_ids": ["..."]
++}
++```
++
++Update `branch_states` with the recursive round status and per-plan outcomes.
++
++## Tools
++
++- OpenCode `task` tool using the `subgoal-prover` subagent
++- `reasoning_agent_memory_search`
++- `reasoning_agent_memory_append`
++- `reasoning_agent_branch_update`
++- `reasoning_agent_search_arxiv_theorems` when search is allowed
++
++## Failure logging
++
++If every plan fails in the recursive round, append a summary record to
++`failed_paths` and immediately invoke `$identify-key-failures`.
+diff --git a/agents/generation/AGENTS.opencode.md b/agents/generation/AGENTS.opencode.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..977ea295d7f92a6b63d0324da7da0d05cd4f2976
+--- /dev/null
++++ b/agents/generation/AGENTS.opencode.md
+@@ -0,0 +1,54 @@
++# OpenCode Compatibility Instructions
++
++This file supplements `AGENTS.md` only for OpenCode runs. Follow all base
++instructions in `AGENTS.md`; use the mappings and overrides below when the base
++instructions use Codex-specific names.
++
++## Isolated problem ids
++
++The OpenCode runner supplies an explicit `problem_id` beginning with
++`opencode/`. Use that exact id for every memory and result operation. Do not
++strip the prefix. Reference directories remain under `data/` and do not gain
++the prefix.
++
++For example:
++
++- input: `data/example.md`
++- OpenCode problem id: `opencode/example`
++- memory: `memory/opencode/example/`
++- results: `results/opencode/example/`
++
++## MCP tool names
++
++OpenCode prefixes tools from the `reasoning_agent` MCP server. Interpret the
++unprefixed tool names in `AGENTS.md` and shared skills as follows:
++
++- `search_arxiv_theorems` -> `reasoning_agent_search_arxiv_theorems`
++- `verify_proof_service` -> `reasoning_agent_verify_proof_service`
++- `memory_init` -> `reasoning_agent_memory_init`
++- `memory_append` -> `reasoning_agent_memory_append`
++- `memory_search` -> `reasoning_agent_memory_search`
++- `branch_update` -> `reasoning_agent_branch_update`
++
++Always call the prefixed OpenCode tool name when it is available.
++
++## Recursive proving
++
++When `AGENTS.md` calls for `$recursive-proving`, load and follow
++`$recursive-proving-opencode` instead. Do not load the Codex-specific
++`$recursive-proving` skill.
++
++Use OpenCode's `task` tool with the `subgoal-prover` subagent for recursive
++proof work. Independent decomposition plans should be delegated independently,
++and all returned reports must be gathered before the parent chooses its next
++step. Pass an explicit recursion depth in each task prompt and stop spawning
++children at depth 3, as specified by `$recursive-proving-opencode`. The
++`subgoal-prover` → `subgoal-prover-depth-2` →
++`subgoal-prover-depth-3` permission chain enforces this limit.
++
++## Search terminology
++
++References to "Codex built-in web search" mean OpenCode's `websearch` tool.
++Use `webfetch` to retrieve a known page or paper URL. During turns run with the
++`rethlas-no-search` agent, search tools are intentionally unavailable; continue
++with local memory and independent reasoning.
+diff --git a/agents/generation/opencode.json b/agents/generation/opencode.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..1335861a8697ec9fe8904a5dc925edf4152f2467
+--- /dev/null
++++ b/agents/generation/opencode.json
+@@ -0,0 +1,108 @@
++{
++  "$schema": "https://opencode.ai/config.json",
++  "default_agent": "rethlas",
++  "instructions": [
++    "AGENTS.opencode.md"
++  ],
++  "agent": {
++    "rethlas": {
++      "description": "Rethlas primary mathematical proof-generation agent with retrieval enabled.",
++      "mode": "primary",
++      "permission": {
++        "*": "allow",
++        "external_directory": "deny",
++        "skill": {
++          "*": "allow",
++          "recursive-proving": "deny",
++          "recursive-proving-opencode": "allow"
++        },
++        "task": {
++          "*": "deny",
++          "subgoal-prover": "allow"
++        }
++      }
++    },
++    "rethlas-no-search": {
++      "description": "Rethlas primary mathematical proof-generation agent for deep reasoning turns without retrieval.",
++      "mode": "primary",
++      "permission": {
++        "*": "allow",
++        "external_directory": "deny",
++        "websearch": "deny",
++        "webfetch": "deny",
++        "reasoning_agent_search_arxiv_theorems": "deny",
++        "skill": {
++          "*": "allow",
++          "recursive-proving": "deny",
++          "recursive-proving-opencode": "allow"
++        },
++        "task": {
++          "*": "deny",
++          "subgoal-prover": "allow"
++        }
++      }
++    },
++    "subgoal-prover": {
++      "description": "Prove all subgoals in one decomposition plan while preserving shared Rethlas memory.",
++      "mode": "subagent",
++      "permission": {
++        "*": "allow",
++        "external_directory": "deny",
++        "skill": {
++          "*": "allow",
++          "recursive-proving": "deny",
++          "recursive-proving-opencode": "allow"
++        },
++        "task": {
++          "*": "deny",
++          "subgoal-prover-depth-2": "allow"
++        }
++      }
++    },
++    "subgoal-prover-depth-2": {
++      "description": "Second-level subagent for recursively proving all subgoals in one decomposition plan.",
++      "mode": "subagent",
++      "permission": {
++        "*": "allow",
++        "external_directory": "deny",
++        "skill": {
++          "*": "allow",
++          "recursive-proving": "deny",
++          "recursive-proving-opencode": "allow"
++        },
++        "task": {
++          "*": "deny",
++          "subgoal-prover-depth-3": "allow"
++        }
++      }
++    },
++    "subgoal-prover-depth-3": {
++      "description": "Final allowed recursion level for proving subgoals in one decomposition plan.",
++      "mode": "subagent",
++      "permission": {
++        "*": "allow",
++        "external_directory": "deny",
++        "skill": {
++          "*": "allow",
++          "recursive-proving": "deny",
++          "recursive-proving-opencode": "allow"
++        },
++        "task": {
++          "*": "deny"
++        }
++      }
++    }
++  },
++  "mcp": {
++    "reasoning_agent": {
++      "type": "local",
++      "command": [
++        "python3",
++        "./mcp/server.py"
++      ],
++      "cwd": ".",
++      "enabled": true,
++      "timeout": 3600000
++    }
++  }
++}
+diff --git a/agents/generation/tests/run_example_opencode.sh b/agents/generation/tests/run_example_opencode.sh
+new file mode 100755
+index 0000000000000000000000000000000000000000..4b2bcb3ba57df9c53ca8db2f2fb716244dbc322d
+--- /dev/null
++++ b/agents/generation/tests/run_example_opencode.sh
+@@ -0,0 +1,259 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
++PROBLEM_FILE="${PROBLEM_FILE:-data/example.md}"
++MODEL="${OPENCODE_GENERATION_MODEL:-}"
++VARIANT="${OPENCODE_GENERATION_VARIANT:-}"
++MAX_ITERATIONS="${MAX_ITERATIONS:-10}"
++OPENCODE_BIN="${OPENCODE_BIN:-opencode}"
++export OPENCODE_ENABLE_EXA="${OPENCODE_ENABLE_EXA:-1}"
++
++if ! command -v "$OPENCODE_BIN" >/dev/null 2>&1; then
++  echo "OpenCode executable not found: $OPENCODE_BIN" >&2
++  exit 1
++fi
++
++if [[ "$PROBLEM_FILE" = /* ]]; then
++  echo "PROBLEM_FILE must be relative to agents/generation: $PROBLEM_FILE" >&2
++  exit 1
++fi
++
++if [[ "$PROBLEM_FILE" == ".." || "$PROBLEM_FILE" == ../* || "$PROBLEM_FILE" == */.. || "$PROBLEM_FILE" == */../* ]]; then
++  echo "PROBLEM_FILE must not contain '..': $PROBLEM_FILE" >&2
++  exit 1
++fi
++
++if [[ "$PROBLEM_FILE" != data/*.md ]]; then
++  echo "PROBLEM_FILE must point to a markdown file under data/: $PROBLEM_FILE" >&2
++  exit 1
++fi
++
++if [[ ! -f "$ROOT_DIR/$PROBLEM_FILE" ]]; then
++  echo "Problem file not found: $ROOT_DIR/$PROBLEM_FILE" >&2
++  exit 1
++fi
++
++if ! [[ "$MAX_ITERATIONS" =~ ^[0-9]+$ ]] || [[ "$MAX_ITERATIONS" -le 0 ]]; then
++  echo "MAX_ITERATIONS must be a positive integer: $MAX_ITERATIONS" >&2
++  exit 1
++fi
++
++# data/algebra/prob1.md -> algebra/prob1
++problem_rel="${PROBLEM_FILE#data/}"
++problem_rel="${problem_rel%.md}"
++problem_name="$(basename "$PROBLEM_FILE" .md)"
++problem_id="opencode/$problem_rel"
++ref_dir="data/${problem_rel}.refs"
++ref_prompt="Use reference_dir=${ref_dir} if it exists."
++
++prepare_references() {
++  local abs_ref_dir="$ROOT_DIR/$ref_dir"
++  if [[ ! -d "$abs_ref_dir" ]]; then
++    return
++  fi
++
++  local pdf_count=0
++  while IFS= read -r -d '' pdf; do
++    pdf_count=$((pdf_count + 1))
++    if ! command -v pdftotext >/dev/null 2>&1; then
++      echo "WARNING: found PDF references, but pdftotext is not installed; PDFs will be ignored." >&2
++      return
++    fi
++
++    local rel_pdf="${pdf#"$abs_ref_dir"/}"
++    local txt="$abs_ref_dir/.extracted/${rel_pdf%.pdf}.txt"
++    mkdir -p "$(dirname "$txt")"
++    if [[ ! -f "$txt" || "$pdf" -nt "$txt" ]]; then
++      pdftotext -layout "$pdf" "$txt"
++    fi
++  done < <(find "$abs_ref_dir" -type f -iname '*.pdf' -not -path "$abs_ref_dir/.extracted/*" -print0)
++
++  if [[ $pdf_count -gt 0 ]]; then
++    ref_prompt="Use reference_dir=${ref_dir} if it exists. PDF references have been extracted to ${ref_dir}/.extracted; read those extracted .txt files instead of the PDFs."
++  fi
++}
++
++extract_session_id() {
++  local log_file="$1"
++  python3 - "$log_file" <<'PY'
++import json
++import sys
++
++with open(sys.argv[1], encoding="utf-8") as handle:
++    for raw_line in handle:
++        try:
++            event = json.loads(raw_line)
++        except json.JSONDecodeError:
++            continue
++        session_id = event.get("sessionID")
++        if isinstance(session_id, str) and session_id:
++            print(session_id)
++            break
++PY
++}
++
++format_duration() {
++  local total="$1"
++  printf "%02d:%02d:%02d" \
++    $((total / 3600)) $(((total % 3600) / 60)) $((total % 60))
++}
++
++run_opencode_turn() {
++  local agent_name="$1"
++  local prompt="$2"
++  local log_file="$3"
++  local session_id="${4:-}"
++  local -a command=(
++    "$OPENCODE_BIN"
++    run
++    --dir "$ROOT_DIR"
++    --agent "$agent_name"
++    --format json
++  )
++
++  if [[ -n "$MODEL" ]]; then
++    command+=(--model "$MODEL")
++  fi
++  if [[ -n "$VARIANT" ]]; then
++    command+=(--variant "$VARIANT")
++  fi
++  if [[ -n "$session_id" ]]; then
++    command+=(--session "$session_id")
++  fi
++
++  "${command[@]}" "$prompt" >"$log_file" 2>&1
++}
++
++prepare_references
++
++LOG_DIR="${LOG_DIR:-$ROOT_DIR/logs/opencode/$problem_rel/iter}"
++verified_path="$ROOT_DIR/results/$problem_id/blueprint_verified.md"
++mkdir -p "$LOG_DIR"
++
++OPENCODE_VERSION="$("$OPENCODE_BIN" --version 2>/dev/null || echo 'unknown')"
++
++echo "========================================"
++echo " OpenCode:   $OPENCODE_VERSION"
++echo " Model:      ${MODEL:-OpenCode configured default}"
++echo " Variant:    ${VARIANT:-OpenCode configured default}"
++echo " Problem:    $PROBLEM_FILE"
++echo " Problem ID: $problem_id"
++echo " References: $ref_dir"
++echo " Max iters:  $MAX_ITERATIONS"
++echo " Logs:       $LOG_DIR"
++echo " Stop file:  $verified_path"
++echo "========================================"
++echo ""
++
++VERIFY_URL="${VERIFY_URL:-http://127.0.0.1:8091/health}"
++if ! curl -sf "$VERIFY_URL" >/dev/null 2>&1; then
++  echo "WARNING: verification service not reachable at ${VERIFY_URL%%/health*}"
++  echo "         The agent may be unable to produce blueprint_verified.md."
++  echo "         Start api.server_opencode:app first if you need verified proofs."
++  echo ""
++fi
++
++START_EPOCH=$(date +%s)
++
++elapsed_timer() {
++  while true; do
++    sleep 30
++    local now
++    now=$(date +%s)
++    local secs=$((now - START_EPOCH))
++    printf "\r  [elapsed %s] still running..." "$(format_duration "$secs")"
++  done
++}
++
++elapsed_timer &
++TIMER_PID=$!
++
++cleanup_timer() {
++  kill "$TIMER_PID" 2>/dev/null || true
++  wait "$TIMER_PID" 2>/dev/null || true
++}
++trap cleanup_timer EXIT
++
++session_id=""
++
++for ((iter = 0; iter < MAX_ITERATIONS; iter += 1)); do
++  log_file="$LOG_DIR/${problem_name}_iter_${iter}.jsonl"
++
++  if [[ -f "$verified_path" ]]; then
++    echo "Solved problem_id=$problem_id before iter=$iter"
++    break
++  fi
++
++  echo "Starting iter=$iter -> $log_file"
++
++  if [[ "$iter" -eq 0 ]]; then
++    prompt="Follow AGENTS.md and AGENTS.opencode.md exactly to solve the math problem in ${PROBLEM_FILE}. Use problem_id=${problem_id}. ${ref_prompt}"
++
++    if run_opencode_turn "rethlas" "$prompt" "$log_file"; then
++      opencode_rc=0
++    else
++      opencode_rc=$?
++    fi
++
++    if [[ "$opencode_rc" -ne 0 ]]; then
++      echo "opencode exited with code $opencode_rc at iter=$iter (see $log_file for details)" >&2
++      exit "$opencode_rc"
++    fi
++
++    session_id="$(extract_session_id "$log_file")"
++    if [[ -z "$session_id" && ! -f "$verified_path" ]]; then
++      echo "Could not extract OpenCode session id from $log_file" >&2
++      exit 1
++    fi
++  elif ((iter % 2 == 1)); then
++    prompt="Please continue. Retrieval tools are disabled for this turn. Think deeply using local files, shared memory, examples, counterexamples, and independent mathematical reasoning."
++
++    if run_opencode_turn "rethlas-no-search" "$prompt" "$log_file" "$session_id"; then
++      opencode_rc=0
++    else
++      opencode_rc=$?
++    fi
++
++    if [[ "$opencode_rc" -ne 0 ]]; then
++      echo "opencode exited with code $opencode_rc at iter=$iter (see $log_file for details)" >&2
++      exit "$opencode_rc"
++    fi
++  else
++    prompt="Please continue. Retrieval tools are available again, including theorem search, web search, and web fetch. Use them when useful, while continuing deep independent mathematical reasoning."
++
++    if run_opencode_turn "rethlas" "$prompt" "$log_file" "$session_id"; then
++      opencode_rc=0
++    else
++      opencode_rc=$?
++    fi
++
++    if [[ "$opencode_rc" -ne 0 ]]; then
++      echo "opencode exited with code $opencode_rc at iter=$iter (see $log_file for details)" >&2
++      exit "$opencode_rc"
++    fi
++  fi
++
++  echo "Finished problem_id=$problem_id iter=$iter -> $log_file"
++done
++
++cleanup_timer
++trap - EXIT
++
++END_EPOCH=$(date +%s)
++TOTAL=$((END_EPOCH - START_EPOCH))
++printf "\n"
++
++if [[ -f "$verified_path" ]]; then
++  echo "Solved problem_id=$problem_id -> $verified_path"
++  printf "Total time: %s\n" "$(format_duration "$TOTAL")"
++  echo ""
++  echo "To view results in the browser, run:"
++  echo "  ./site/serve.sh"
++  echo "Then open http://localhost:3264"
++  exit 0
++fi
++
++echo "Reached MAX_ITERATIONS=$MAX_ITERATIONS without verified blueprint for problem_id=$problem_id" >&2
++printf "Total time: %s\n" "$(format_duration "$TOTAL")"
++exit 1
+diff --git a/agents/verification/AGENTS.opencode.md b/agents/verification/AGENTS.opencode.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..4f1701c4042df4206a8e83f6eb86980b9c249f9c
+--- /dev/null
++++ b/agents/verification/AGENTS.opencode.md
+@@ -0,0 +1,35 @@
++# OpenCode Compatibility Instructions
++
++This file supplements `AGENTS.md` only for OpenCode runs. Follow the complete
++verification procedure in `AGENTS.md` and apply the mappings below whenever the
++base instructions use Codex-specific names.
++
++## Isolated run ids
++
++The OpenCode verification API supplies a `run_id` beginning with `opencode_`.
++Use that exact id for every memory and result operation.
++
++## MCP tool names
++
++OpenCode prefixes tools from the `verification_agent` MCP server. Interpret
++the unprefixed tool names in `AGENTS.md` and shared skills as follows:
++
++- `search_arxiv_theorems` -> `verification_agent_search_arxiv_theorems`
++- `memory_init` -> `verification_agent_memory_init`
++- `memory_append` -> `verification_agent_memory_append`
++- `memory_query` -> `verification_agent_memory_query`
++- `validate_verification_output` -> `verification_agent_validate_verification_output`
++- `write_verification_output` -> `verification_agent_write_verification_output`
++
++Always call the prefixed OpenCode tool name when it is available.
++
++## Search terminology
++
++References to "Codex built-in web search" mean OpenCode's `websearch` tool.
++Use `webfetch` to retrieve a known page or paper URL.
++
++## Completion
++
++Do not finish with only a textual verdict. Validate and persist the final JSON
++through `verification_agent_write_verification_output`, exactly as required by
++`AGENTS.md`.
+diff --git a/agents/verification/api/server_opencode.py b/agents/verification/api/server_opencode.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..941edaea6ecc617c82f38f61a6253cad3eef63be
+--- /dev/null
++++ b/agents/verification/api/server_opencode.py
+@@ -0,0 +1,186 @@
++from __future__ import annotations
++
++import json
++import os
++import shlex
++import subprocess
++from datetime import datetime, timezone
++from pathlib import Path
++from typing import Any, Dict, List, Optional
++
++from fastapi import FastAPI, HTTPException
++
++from api import server as shared
++
++
++WORK_DIR = shared.WORK_DIR
++RESULTS_ROOT = shared.RESULTS_ROOT
++OPENCODE_BIN = os.getenv("OPENCODE_BIN", "opencode")
++OPENCODE_MODEL = os.getenv("OPENCODE_VERIFICATION_MODEL", "").strip()
++OPENCODE_VARIANT = os.getenv("OPENCODE_VERIFICATION_VARIANT", "").strip()
++OPENCODE_TIMEOUT_SECONDS = (
++    int(os.getenv("OPENCODE_TIMEOUT_SECONDS", "0")) or None
++)
++VERIFICATION_FILENAMES = shared.VERIFICATION_FILENAMES
++
++
++def _results_dir(run_id: str) -> Path:
++    return RESULTS_ROOT / run_id
++
++
++def _log_path(run_id: str) -> Path:
++    return _results_dir(run_id) / "log.md"
++
++
++def _verification_path(run_id: str) -> Optional[Path]:
++    for filename in VERIFICATION_FILENAMES:
++        path = _results_dir(run_id) / filename
++        if path.exists():
++            return path
++    return None
++
++
++def generate_run_id(statement: str) -> str:
++    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
++    return f"opencode_{timestamp}_{shared._statement_hash(statement)}"
++
++
++def _allocate_run_id(statement: str) -> str:
++    base = generate_run_id(statement)
++    run_id = base
++    suffix = 1
++    while (RESULTS_ROOT / run_id).exists():
++        suffix += 1
++        run_id = f"{base}_{suffix}"
++    return run_id
++
++
++def build_prompt(run_id: str, statement: str, proof: str) -> str:
++    return (
++        f"Run_id: {run_id}. "
++        f"Statement: {statement}. "
++        f"Proof:\n{proof}\n\n"
++        "Follow AGENTS.md and AGENTS.opencode.md exactly to verify the proof "
++        "for the statement. Persist the final structured verification output."
++    )
++
++
++def build_opencode_command(
++    run_id: str,
++    statement: str,
++    proof: str,
++) -> List[str]:
++    command = [
++        OPENCODE_BIN,
++        "run",
++        "--dir",
++        str(WORK_DIR),
++    ]
++    if OPENCODE_MODEL:
++        command.extend(["--model", OPENCODE_MODEL])
++    if OPENCODE_VARIANT:
++        command.extend(["--variant", OPENCODE_VARIANT])
++    command.extend(["--agent", "verifier"])
++    command.append(build_prompt(run_id=run_id, statement=statement, proof=proof))
++    return command
++
++
++def run_opencode_verification(
++    run_id: str,
++    statement: str,
++    proof: str,
++) -> Dict[str, Any]:
++    results_dir = _results_dir(run_id)
++    results_dir.mkdir(parents=True, exist_ok=True)
++    log_path = _log_path(run_id)
++    command = build_opencode_command(
++        run_id=run_id,
++        statement=statement,
++        proof=proof,
++    )
++    environment = os.environ.copy()
++    environment.setdefault("OPENCODE_ENABLE_EXA", "1")
++
++    started_at = datetime.now(timezone.utc).isoformat()
++    try:
++        with log_path.open("w", encoding="utf-8") as log_handle:
++            log_handle.write(f"started_at_utc: {started_at}\n")
++            log_handle.write(f"command: {shlex.join(command)}\n\n")
++            log_handle.flush()
++
++            completed = subprocess.run(
++                command,
++                cwd=WORK_DIR,
++                env=environment,
++                stdout=log_handle,
++                stderr=subprocess.STDOUT,
++                text=True,
++                timeout=OPENCODE_TIMEOUT_SECONDS,
++                check=False,
++            )
++    except subprocess.TimeoutExpired as exc:
++        raise HTTPException(
++            status_code=504,
++            detail=(
++                f"opencode run timed out after {exc.timeout} seconds. "
++                f"See log at {log_path}"
++            ),
++        ) from exc
++
++    verification_path = _verification_path(run_id)
++    if completed.returncode != 0:
++        raise HTTPException(
++            status_code=500,
++            detail=(
++                f"opencode run failed with exit code {completed.returncode}. "
++                f"See log at {log_path}"
++            ),
++        )
++
++    if verification_path is None:
++        expected_primary = _results_dir(run_id) / VERIFICATION_FILENAMES[0]
++        raise HTTPException(
++            status_code=500,
++            detail=(
++                f"verification output was not found at {expected_primary}. "
++                f"See log at {log_path}"
++            ),
++        )
++
++    try:
++        payload = json.loads(verification_path.read_text(encoding="utf-8"))
++    except json.JSONDecodeError as exc:
++        raise HTTPException(
++            status_code=500,
++            detail=f"verification output at {verification_path} is not valid JSON",
++        ) from exc
++
++    if not isinstance(payload, dict):
++        raise HTTPException(
++            status_code=500,
++            detail=f"verification output at {verification_path} must be a JSON object",
++        )
++
++    return payload
++
++
++app = FastAPI(title="OpenCode Verification Agent API", version="0.1.0")
++
++
++@app.get("/health")
++def health() -> Dict[str, str]:
++    return {
++        "status": "ok",
++        "runtime": "opencode",
++        "model": OPENCODE_MODEL or "opencode-configured-default",
++    }
++
++
++@app.post("/verify")
++def verify(request: shared.VerifyRequest) -> Dict[str, Any]:
++    run_id = _allocate_run_id(request.statement)
++    return run_opencode_verification(
++        run_id=run_id,
++        statement=request.statement,
++        proof=request.proof,
++    )
+diff --git a/agents/verification/opencode.json b/agents/verification/opencode.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..8c4392a8df5201e6912833736e7290ffe5c4b433
+--- /dev/null
++++ b/agents/verification/opencode.json
+@@ -0,0 +1,29 @@
++{
++  "$schema": "https://opencode.ai/config.json",
++  "default_agent": "verifier",
++  "instructions": [
++    "AGENTS.opencode.md"
++  ],
++  "agent": {
++    "verifier": {
++      "description": "Strict Rethlas mathematical proof-verification agent.",
++      "mode": "primary",
++      "permission": {
++        "*": "allow",
++        "external_directory": "deny"
++      }
++    }
++  },
++  "mcp": {
++    "verification_agent": {
++      "type": "local",
++      "command": [
++        "python3",
++        "./mcp/server.py"
++      ],
++      "cwd": ".",
++      "enabled": true,
++      "timeout": 3600000
++    }
++  }
++}

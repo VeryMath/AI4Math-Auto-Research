@@ -19,8 +19,12 @@ scripts, and references.
   ranked problems, conjecture lattices, proof obligations, and work orders.
 - `skills/proof-blueprint-review/`: coordinate agent-mediated proof
   generation, verifier-style review, repair hints, and proof acceptance reports.
-- `skills/rethlas-opencode-adapter/`: clone, patch, set up, and supervise
-  FrenzyMath Rethlas runs through OpenCode.
+- `skills/rethlas-helper/`: install and configure Rethlas, choose the original
+  Codex runtime or the additive OpenCode runtime, and guide proof-generation
+  and verification workflows.
+- `skills/archon-helper/`: install and configure Archon, choose Claude Code or
+  OpenCode, apply the compatibility patch when selected, and guide
+  formalization workflows.
 - `skills/graph-theory-researcher/`: stage graph-theory reading, question
   selection, bounded research, verification, and LaTeX/PDF delivery.
 - `skills/extremal-graph-problem-suggester/`: generate small-move candidate
