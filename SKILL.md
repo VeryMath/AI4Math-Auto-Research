@@ -19,11 +19,11 @@ scripts, and references.
   ranked problems, conjecture lattices, proof obligations, and work orders.
 - `skills/proof-blueprint-review/`: coordinate agent-mediated proof
   generation, verifier-style review, repair hints, and proof acceptance reports.
-- `skills/rethlas-helper/`: install and configure Rethlas, choose the original
-  Codex runtime or the additive OpenCode runtime, and guide proof-generation
-  and verification workflows.
-- `skills/archon-helper/`: install and configure Archon, choose Claude Code or
-  OpenCode, apply the compatibility patch when selected, and guide
+- `skills/rethlas-helper/`: install Rethlas for OpenCode, remember its local
+  path, resolve it from new projects and conversations, and guide natural-
+  language proof generation and verification.
+- `skills/archon-helper/`: install Archon for OpenCode, remember its local
+  path, resolve it from new projects and conversations, and guide
   formalization workflows.
 - `skills/graph-theory-researcher/`: stage graph-theory reading, question
   selection, bounded research, verification, and LaTeX/PDF delivery.

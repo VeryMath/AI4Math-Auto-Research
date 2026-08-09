@@ -1,321 +1,189 @@
-# Archon 功能与使用引导
+# 在 OpenCode Desktop 中使用 Archon
 
-## 目录
+Archon 管理 Lean 数学形式化项目，并通过 agent 执行 blueprint、规划、证明、审查、
+恢复和多项目协作。
 
-1. 使用前约定
-2. 项目创建与健康检查
-3. Blueprint 与自动形式化
-4. 交互、监控和恢复
-5. 项目拆分、合并和重构
-6. 多项目协作
-7. 版本、迁移和维护
-8. Subagent、状态和保护
-9. 推荐引导方式
+## 1. 从任意对话定位 Archon
 
-## 1. 使用前约定
+在当前 OpenCode 项目中运行：
 
-统一使用当前 `<archon-dir>/.venv/bin/archon`，避免调用系统里的另一版本。
+```bash
+python3 "$SKILL_DIR/scripts/archon_helper.py" doctor "$PROJECT" --json
+```
 
-- 选择原版 Claude Code：命令中省略 `--harness opencode`，使用 Archon 默认
-  harness。
-- 选择 OpenCode：带 agent 的交互命令支持 `--harness` 时显式传
-  `--harness opencode`，其余命令从项目配置继承。
-
-OpenCode 项目先确认：
+从输出取得：
 
 ```text
-.archon/config.json: loop.harness = opencode
-.archon/config.json: multilane.enabled = false
-.opencode/skills/lean4/SKILL.md 存在
-.opencode/tools/archon-subagent.py 存在
+ARCHON_HOME = archon_home
+ARCHON_BIN  = archon_bin
+PROJECT     = project
 ```
 
-## 2. 项目创建与健康检查
+新对话使用登记的 `ARCHON_HOME`。当前工作区作为默认 `PROJECT`，用户指定路径时
+采用该路径。
 
-### `archon init`
+## 2. 初始化项目
 
-作用：初始化空目录、已有 Lean/Lake 项目，或含 Markdown、LaTeX、PDF 等材料的
-目录；创建 `.archon/`、Lean 骨架和所选运行器的项目工具。
+Archon 可以接入空目录、Lean/Lake 项目，以及包含 Markdown、LaTeX 或 PDF 材料
+的目录。
 
 ```bash
-<archon-bin> init <project>
-<archon-bin> init <project> --harness opencode
+"$ARCHON_BIN" init "$PROJECT" --harness opencode
 ```
 
-第一条用于原版 Claude Code，第二条用于 OpenCode。
-
-无人值守时可加 `--headless`。已有 `.archon/` 时先查看配置和差异；`--force`
-会覆盖 Archon 管理文件，必须取得用户确认。
-
-### `archon doctor`
-
-作用：检查系统工具、包数据、项目状态、所选运行器的项目文件、Lean-LSP 和认证。
+初始化后检查：
 
 ```bash
-<archon-bin> doctor <project> --skip-auth
-<archon-bin> doctor <project>
+python3 "$SKILL_DIR/scripts/archon_helper.py" doctor "$PROJECT" --json
+"$ARCHON_BIN" doctor "$PROJECT" --skip-auth
 ```
 
-第一条不调用 provider。第二条会发出真实请求，只在用户许可后运行。
+关键项目状态：
 
-### `archon version`
-
-作用：显示 CLI 版本；在项目内同时显示 init 写入的项目版本。
-
-```bash
-<archon-bin> version <project>
+```text
+loop.harness = opencode
+multilane.enabled = false
+.opencode/skills/lean4/SKILL.md
+.opencode/tools/archon-subagent.py
 ```
 
-## 3. Blueprint 与自动形式化
+## 3. 建立数学依赖图
 
-### `archon dag`
-
-作用：让 agent 编写完整 informal blueprint，以 `\uses{}` 标注依赖，并建立
-LeanDAG。复杂项目建议在 loop 前运行。
+`dag` 让 agent 编写非形式化 blueprint，并通过 `\uses{}` 标注依赖关系：
 
 ```bash
-<archon-bin> dag <project> --max-iterations 4
+"$ARCHON_BIN" dag "$PROJECT" --max-iterations 4
 ```
 
-它从项目配置继承已经选定的运行器，会产生 provider 请求。
-
-### `archon blueprint-doctor`
-
-作用：静态检查 blueprint 的断链、孤立章节、引用、宏、axiom 和覆盖标记。
+静态检查 blueprint：
 
 ```bash
-<archon-bin> blueprint-doctor <project>
+"$ARCHON_BIN" blueprint-doctor "$PROJECT"
 ```
 
-该命令适合在 dag 后和提交前运行，不需要模型判断。
+## 4. 运行自动形式化
 
-### `archon loop`
-
-作用：运行核心 `plan → prover → review` 循环，并把每个阶段提交到项目的 inner
-Git。默认后台启动 Dashboard。
+核心流程为 `plan → prover → review`：
 
 ```bash
-<archon-bin> loop <project>
-<archon-bin> loop <project> --max-iterations 3
-<archon-bin> loop <project> --serial
-<archon-bin> loop <project> --focus "优先处理 Foo.lean 中的 theorem bar"
-<archon-bin> loop <project> --no-dashboard
-<archon-bin> loop <project> --no-review
+"$ARCHON_BIN" loop "$PROJECT"
+"$ARCHON_BIN" loop "$PROJECT" --max-iterations 3
+"$ARCHON_BIN" loop "$PROJECT" --serial
+"$ARCHON_BIN" loop "$PROJECT" --focus "优先形式化 theorem foo"
 ```
 
-普通并行 prover 可用，`--max-parallel` 控制并发。不要启用 multilane。
+OpenCode 补丁支持普通并行 prover。并发数量由项目配置和命令参数控制。
 
-### `archon prove`
+单条自然语言命题使用显式项目流程：
 
-作用：为一条文本命题创建临时工作区并自动执行 init 与 loop。
+1. 在 `PROJECT/statement.md` 写入完整命题；
+2. 运行 `init --harness opencode`；
+3. 运行 `loop`；
+4. 汇报生成的 Lean 文件和 `lake build` 结果。
 
-原版 Claude Code 流程可以直接使用：
+## 5. 恢复与讨论
+
+恢复中断流程：
 
 ```bash
-<archon-bin> prove '<statement>' <project>
+"$ARCHON_BIN" loop "$PROJECT" --resume
+"$ARCHON_BIN" loop "$PROJECT" --resume --from prover
 ```
 
-0.3.3 的该快捷命令没有把 harness 传给内部 init，因此 OpenCode 流程采用等价
-的显式步骤：
+`--from` 可选择 `plan`、`prover` 或 `review`。
+
+使用完整项目上下文讨论阻塞：
 
 ```bash
-mkdir -p <project>
-<archon-bin> init <project> --harness opencode
-<archon-bin> loop <project>
+"$ARCHON_BIN" discuss "$PROJECT" --harness opencode
+"$ARCHON_BIN" discuss "$PROJECT" --harness opencode --focus "theorem foo"
 ```
 
-在 init 前使用文件编辑工具创建 `<project>/statement.md`，内容为待证明命题。
-
-## 4. 交互、监控和恢复
-
-### `archon discuss`
-
-作用：打开带完整项目上下文的交互会话，讨论证明阻塞、Mathlib 引理和策略，并可
-把结论写入 `USER_HINTS.md`。
+## 6. 查看进度和历史
 
 ```bash
-<archon-bin> discuss <project>
-<archon-bin> discuss <project> --harness opencode
-<archon-bin> discuss <project> --harness opencode --focus "theorem bar"
+"$ARCHON_BIN" dashboard "$PROJECT" --open
+"$ARCHON_BIN" log "$PROJECT" -n 30
+"$ARCHON_BIN" version "$PROJECT"
 ```
 
-### `archon dashboard`
+Dashboard 使用 Node.js。终端日志、`.archon/` 状态和 inner Git 历史用于追踪每个
+阶段的输入、输出和提交。
 
-作用：查看阶段进度、并行 prover、日志、diff、DAG、blueprint 和 proof journal。
+## 7. 拆分、合并与重构
 
-```bash
-<archon-bin> dashboard <project> --open
-<archon-bin> dashboard <project> --port 8080
-```
-
-Dashboard 需要 Node.js。loop 已默认启动时，优先使用终端打印的 URL。
-
-### `archon loop --resume`
-
-作用：从中断迭代的最后完成阶段继续。
+提取 blueprint 依赖闭包形成子项目：
 
 ```bash
-<archon-bin> loop <project> --resume
-<archon-bin> loop <project> --resume --from prover
-```
-
-`--from` 可取 `plan`、`prover`、`review`。找不到所选运行器的 session id 时会
-启动新会话。
-
-### `archon log` 与 `archon branch`
-
-作用：查看 Archon inner Git 历史，或从历史提交创建替代策略分支。
-
-```bash
-<archon-bin> log <project> -n 30
-<archon-bin> branch alt-strategy <project> --from <commit>
-<archon-bin> branch main <project>
-```
-
-`branch --force` 可能覆盖 inner-tracked 改动，除非用户明确要求，否则不使用。
-
-## 5. 项目拆分、合并和重构
-
-### `archon extract`
-
-作用：按 blueprint DAG 的依赖闭包从父项目提取子项目。父项目保持只读，默认在
-新目录创建 sandbox。
-
-```bash
-<archon-bin> extract <parent> \
+"$ARCHON_BIN" extract "$PROJECT" \
   --dest <new-project> \
   --harness opencode \
   --build
 ```
 
-目标目录必须不存在。中断或验证失败后用 `--resume` 继续。
-
-### `archon merge`
-
-作用：经 DAG 合并两个 Archon 项目，处理共享声明的证明选择和语句冲突。
+合并两个 Archon 项目：
 
 ```bash
-<archon-bin> merge <target> \
-  --from <source> \
+"$ARCHON_BIN" merge "$PROJECT" \
+  --from <source-project> \
   --dest <merged-project> \
   --harness opencode
 ```
 
-默认创建 sandbox 并执行 `lake build`。`--in-place` 会直接修改 target；使用前
-必须让用户确认，并先查看项目状态。`--union` 会引入 source 的非共享依赖锥。
-
-### `archon refactor`
-
-作用：先通过访谈生成重构指令，再让 refactor agent 执行并提交到 inner Git。
+生成并执行重构计划：
 
 ```bash
-<archon-bin> refactor draft <project> --harness opencode
-<archon-bin> refactor run <project>
+"$ARCHON_BIN" refactor draft "$PROJECT" --harness opencode
+"$ARCHON_BIN" refactor run "$PROJECT"
 ```
 
-先审阅 `.archon/REFACTOR_DIRECTIVE.md`，再执行 run。不要默认使用
-`draft --auto-run`。
+跨项目写入前，向用户确认源目录、目标目录和预期文件变化。
 
-## 6. 多项目协作
+## 8. 多项目协作
 
-### `archon peers`
-
-作用：读取 `peers.yaml` 指定的同类项目，查看复用关系，并通过 inbox 提交代码
-泛化建议或数学/架构问题。
+查看 peers 和 inbox：
 
 ```bash
-<archon-bin> peers --project-path <project>
-<archon-bin> peers inbox --project-path <project>
-<archon-bin> peers pr --project-path <project> \
-  --target <peer> --lean-name <Lean.Name> --code '<code>'
-<archon-bin> peers issue --project-path <project> \
-  --target <peer> --title '<title>' --body '<description>'
+"$ARCHON_BIN" peers --project-path "$PROJECT"
+"$ARCHON_BIN" peers inbox --project-path "$PROJECT"
 ```
 
-`pr` 和 `issue` 会写入 peer 的 `.archon/inbox/`，属于跨项目写操作；执行前向
-用户确认目标和内容。使用 `accept` 或 `decline` 处理收到的条目。
-
-### `archon scope`
-
-作用：管理一组 Archon 项目，生成 union DAG、跨项目 roadmap 和统一 Dashboard。
+建立项目 scope：
 
 ```bash
-<archon-bin> scope init <scope-dir>
+"$ARCHON_BIN" scope init <scope-dir>
 cd <scope-dir>
-<archon-bin> scope add '<project-path-or-glob>'
-<archon-bin> scope ls
-<archon-bin> scope graph
-<archon-bin> scope roadmap --harness opencode
-<archon-bin> scope discuss --harness opencode
-<archon-bin> scope dashboard
+"$ARCHON_BIN" scope add '<project-path-or-glob>'
+"$ARCHON_BIN" scope ls
+"$ARCHON_BIN" scope graph
+"$ARCHON_BIN" scope roadmap --harness opencode
+"$ARCHON_BIN" scope dashboard
 ```
 
-先用 `scope ls` 核对成员，随后再运行图、roadmap 或交互功能。
+## 9. Subagent
 
-## 7. 版本、迁移和维护
+项目配置中的 `subagents` 控制 Archon subagent。OpenCode 初始化会安装
+`.opencode/tools/archon-subagent.py`，Archon 通过该 wrapper 启动子任务并等待
+结果。启用前确认名称、写入范围、并发数量和 provider 额度。
 
-### `archon migrate`
+## 10. 新项目对话示例
 
-作用：执行旧项目的一次性结构迁移。0.3.3 当前提供 session 目录重命名：
+用户可以在任意 OpenCode 项目的新对话中输入：
 
-```bash
-<archon-bin> migrate rename-sessions <project>
-```
+> 使用 Archon 把当前项目中的数学说明形式化为 Lean。先检查项目状态，初始化
+> OpenCode harness，然后运行 blueprint 和 loop，并持续汇报 Lean 构建结果。
 
-迁移前查看 Git 状态，并运行子命令的 `--help` 确认影响。
+Skill 应读取已登记的 `archon_home`，派生 `archon_bin`，把当前工作区设为
+`PROJECT`，并根据 doctor 输出选择 `init`、`dag`、`loop` 或 `loop --resume`。
 
-### `archon setup`
+## 11. 报告内容
 
-作用：上游用于安装系统依赖和 Claude Code。选择原版时可以在用户确认后使用；
-OpenCode 流程不调用它，按 `environment-zh.md` 分别配置依赖。
+每次运行报告：
 
-### `archon update`
-
-作用：把原版 Archon 更新到上游最新版本。OpenCode 补丁只验证了固定 0.3.3
-基线，补丁版不调用 update。需要升级时另建检出，重新审计和生成补丁。
-
-## 8. Subagent、状态和保护
-
-subagent 默认关闭。在 `.archon/config.json` 中启用：
-
-```json
-{
-  "subagents": {
-    "enabled": [
-      "strategy-critic",
-      "blueprint-reviewer",
-      "lean-auditor"
-    ]
-  }
-}
-```
-
-也可设为 `"*"`。原版 subagent 继承 Claude Code；OpenCode 模式不要把单个
-subagent 覆盖回 `claude-code`，它们由 `.opencode/tools/archon-subagent.py`
-调度。
-
-主要状态：
-
-- `.archon/PROGRESS.md`：当前阶段和进度；
-- `.archon/USER_HINTS.md`：用户长期提示；
-- `.archon/TO_USER.md`：Archon 给用户的问题；
-- `.archon/logs/`：agent 与迭代日志；
-- `.archon/iter/`：每轮 plan/review 记录；
-- `.archon/proof-journal/`：证明经验。
-
-临时提示使用 `loop --focus`，长期提示编辑 `USER_HINTS.md`。需要保护声明或文件时
-查看并配置项目根目录的 `archon-protected.yaml`。
-
-## 9. 推荐引导方式
-
-根据目标只给一条主路径：
-
-- 从零开始：`init → doctor → dag（可选）→ loop → dashboard`；
-- 继续中断任务：`doctor → loop --resume`；
-- 理解阻塞：`discuss → USER_HINTS.md → loop --focus`；
-- 拆分项目：`blueprint-doctor → extract --build`；
-- 合并成果：`merge` 到新 sandbox，验证后再替换正式目录；
-- 大规模结构调整：`refactor draft → 人工审阅 → refactor run`；
-- 多项目协调：`scope init/add/ls → graph/roadmap/dashboard`。
-
-每一步说明预期输出、会写入的目录、是否调用模型，以及失败后的恢复命令。
+- Archon CLI 路径与版本；
+- 当前项目路径与 harness；
+- provider/model；
+- 当前 phase 与迭代；
+- 修改的 Lean 文件；
+- `lake build` 结果；
+- Dashboard、日志和项目状态路径。

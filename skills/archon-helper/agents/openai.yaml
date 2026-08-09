@@ -1,4 +1,4 @@
 interface:
   display_name: "Archon Helper"
-  short_description: "安装、配置并选择 Claude Code 或 OpenCode 使用 Archon"
-  default_prompt: "使用 $archon-helper 检查并安装 Archon，先根据本机环境带我选择 Claude Code 或 OpenCode，再配置并运行项目。"
+  short_description: "持久记录 Archon 安装路径并在 OpenCode 项目中运行"
+  default_prompt: "使用 $archon-helper 查找已登记的 Archon 安装，并在当前 OpenCode 项目中执行形式化任务。"

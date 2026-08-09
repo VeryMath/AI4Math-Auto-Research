@@ -30,8 +30,8 @@
 | [`agent-laboratory-workflow`](skills/agent-laboratory-workflow/) | 部署、验证并启动有边界的 Agent Laboratory 自动研究运行。 | [`README`](skills/agent-laboratory-workflow/README.md) · [`SKILL`](skills/agent-laboratory-workflow/SKILL.md) |
 | [`discover-math-problems`](skills/discover-math-problems/) | 把模糊背景转为候选问题、猜想格、证据台账和后续工作单。 | [`README`](skills/discover-math-problems/README.md) · [`SKILL`](skills/discover-math-problems/SKILL.md) |
 | [`proof-blueprint-review`](skills/proof-blueprint-review/) | 生成证明蓝图、执行 verifier-style review、记录修复提示并给出严格证明状态。 | [`README`](skills/proof-blueprint-review/README.md) · [`SKILL`](skills/proof-blueprint-review/SKILL.md) |
-| [`rethlas-helper`](skills/rethlas-helper/) | 安装和配置 Rethlas，选择 Codex 或 OpenCode，安全管理 OpenCode 增量补丁，并引导证明生成流程。 | [`SKILL`](skills/rethlas-helper/SKILL.md) |
-| [`archon-helper`](skills/archon-helper/) | 安装和配置 Archon，选择 Claude Code 或 OpenCode，应用兼容补丁，并引导形式化工作流。 | [`SKILL`](skills/archon-helper/SKILL.md) |
+| [`rethlas-helper`](skills/rethlas-helper/) | 为 OpenCode 安装 Rethlas、记录本机路径，并从任意 OpenCode 项目运行自然语言证明生成。 | [`SKILL`](skills/rethlas-helper/SKILL.md) |
+| [`archon-helper`](skills/archon-helper/) | 为 OpenCode 安装 Archon、记录本机路径，并从任意 OpenCode 项目运行形式化工作流。 | [`SKILL`](skills/archon-helper/SKILL.md) |
 | [`graph-theory-researcher`](skills/graph-theory-researcher/) | 阅读图论论文，通过用户检查点选择问题，开展有边界研究并生成可核验 LaTeX/PDF。 | [`README`](skills/graph-theory-researcher/README.md) · [`SKILL`](skills/graph-theory-researcher/SKILL.md) |
 | [`extremal-graph-problem-suggester`](skills/extremal-graph-problem-suggester/) | 为极值图论问题生成“小改动”候选变体，并检查引用、新颖性与可行性边界。 | [`README`](skills/extremal-graph-problem-suggester/README.md) · [`SKILL`](skills/extremal-graph-problem-suggester/SKILL.md) |
 | [`open-problem-research-pipeline`](skills/open-problem-research-pipeline/) | 对数学公开问题执行文献搜索、方法分析、证明框架和报告组装的分阶段流程。 | [`README`](skills/open-problem-research-pipeline/README.md) · [`SKILL`](skills/open-problem-research-pipeline/SKILL.md) |
@@ -82,6 +82,15 @@ ln -s "$PWD/skills/open-problem-research-pipeline" ~/.codex/skills/open-problem-
 
 如果你的 agent 使用别的本地 Skill 目录，把 `~/.codex/skills` 替换成对应配置路径。
 
+OpenCode Desktop 从 `~/.config/opencode/skills` 发现全局 Skill。使用以下命令
+安装 Rethlas Helper 和 Archon Helper：
+
+```bash
+mkdir -p ~/.config/opencode/skills
+ln -s "$PWD/skills/rethlas-helper" ~/.config/opencode/skills/rethlas-helper
+ln -s "$PWD/skills/archon-helper" ~/.config/opencode/skills/archon-helper
+```
+
 ## 快速开始
 
 克隆仓库并选择技能包：
@@ -109,13 +118,13 @@ Agent Laboratory 运行从这里开始：
 skills/agent-laboratory-workflow/SKILL.md
 ```
 
-Rethlas 安装配置以及 Codex/OpenCode 使用引导从这里开始：
+Rethlas 的持久化安装、跨项目定位和 OpenCode 解题流程从这里开始：
 
 ```text
 skills/rethlas-helper/SKILL.md
 ```
 
-Archon 安装配置以及 Claude Code/OpenCode 使用引导从这里开始：
+Archon 的持久化安装、跨项目定位和 OpenCode 形式化流程从这里开始：
 
 ```text
 skills/archon-helper/SKILL.md

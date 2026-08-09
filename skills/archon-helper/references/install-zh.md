@@ -1,77 +1,92 @@
-# 安装与 clone 流程
+# 安装并登记 Archon
 
-## 目标
+本阶段负责解析本机安装记录、获取 Archon 源码、创建独立 Python 环境，以及保存
+`archon_home`。
 
-取得一份可追踪、可打补丁的 Archon 源码，并把 CLI 安装到独立虚拟环境。
+## 1. 查询安装记录
 
-已测试基线：
+运行：
+
+```bash
+python3 "$SKILL_DIR/scripts/archon_helper.py" installation-show --json
+```
+
+输出字段：
+
+- `config_file`：用户级配置文件；
+- `archon_home`：Archon 源码根目录；
+- `archon_bin`：该目录中虚拟环境的 CLI；
+- `archon_bin_ready`：CLI 文件状态；
+- `version`：已登记 Archon 版本。
+
+`configured` 与 `valid` 同时为 `true` 时，使用输出路径。记录缺失时，采用用户
+指定位置。用户尚未选择目录时，询问安装目标。
+
+## 2. 获取兼容版本
+
+OpenCode 补丁对应 Archon 0.3.3。官方仓库与对应提交为：
 
 ```text
-仓库：https://github.com/frenzymath/Archon.git
-提交：5e9ae7615efa0aa2cff11edabd5fbc0d45308fd5
-版本：0.3.3
+https://github.com/frenzymath/Archon.git
+5e9ae7615efa0aa2cff11edabd5fbc0d45308fd5
 ```
 
-## 1. 发现现状
-
-依次检查：
+用户批准网络操作和目标路径后运行：
 
 ```bash
-command -v archon
-archon version
-rg --files -g pyproject.toml <search-root>
+git clone https://github.com/frenzymath/Archon.git "$ARCHON_HOME"
+git -C "$ARCHON_HOME" checkout 5e9ae7615efa0aa2cff11edabd5fbc0d45308fd5
 ```
 
-只把 `pyproject.toml` 中项目名为 `archon` 的目录视为 `<archon-dir>`。记录
-现有 CLI 路径，防止后续调用到另一份全局安装。
-
-## 2. clone 原版
-
-用户没有源码时，先确认目标路径不存在，再执行：
+目标目录应为空目录或尚未创建。已有仓库使用以下命令检查：
 
 ```bash
-git clone https://github.com/frenzymath/Archon.git <archon-dir>
-git -C <archon-dir> checkout 5e9ae7615efa0aa2cff11edabd5fbc0d45308fd5
+git -C "$ARCHON_HOME" status --short
+git -C "$ARCHON_HOME" branch --show-current
+git -C "$ARCHON_HOME" rev-parse HEAD
 ```
 
-不要用浮动的 `main` 作为补丁基线。上游没有 `v0.3.3` tag；上述提交对应
-`pyproject.toml` 版本 0.3.3。
+## 3. 保存安装路径
 
-已有 clone 时运行：
+确认 `pyproject.toml` 的项目名为 `archon` 后运行：
 
 ```bash
-git -C <archon-dir> status --short
-git -C <archon-dir> rev-parse HEAD
+python3 "$SKILL_DIR/scripts/archon_helper.py" \
+  installation-set "$ARCHON_HOME" --json
 ```
 
-发现用户改动或不同提交时保留现场。补丁兼容性稍后由 `--check-only` 判断。
-
-## 3. 创建隔离环境
-
-确认 Python 版本至少为 3.10，然后：
-
-```bash
-python3 -m venv <archon-dir>/.venv
-<archon-dir>/.venv/bin/python -m pip install -e <archon-dir>
-<archon-dir>/.venv/bin/archon version
-```
-
-安装依赖可能访问网络；执行前告知用户。使用 editable 安装后，源码补丁会立即
-反映到 CLI。若入口或依赖定义发生变化，再运行一次 `pip install -e`。
-
-后续把以下绝对路径记为 `<archon-bin>`：
+默认配置文件为：
 
 ```text
-<archon-dir>/.venv/bin/archon
+~/.config/opencode/archon-helper.toml
 ```
 
-## 4. 安装完成标准
+系统设置 `XDG_CONFIG_HOME` 时，配置文件位于
+`$XDG_CONFIG_HOME/opencode/archon-helper.toml`。
 
-- `<archon-dir>` 是有效 Git 检出；
-- `pyproject.toml` 显示 Archon 0.3.3；
-- `<archon-dir>/.venv/bin/archon version` 成功；
-- 已记录源码目录、CLI 路径和当前提交；
-- 尚未获得补丁授权时，源码仍保持原版状态。
+## 4. 创建 Archon CLI 环境
 
-不要在 OpenCode 安装流程中运行 `archon setup`。它会固定检查并安装 Claude
-Code；其他环境依赖按 `environment-zh.md` 分别处理。
+使用 Python 3.10 或更高版本：
+
+```bash
+python3 -m venv "$ARCHON_HOME/.venv"
+"$ARCHON_HOME/.venv/bin/python" -m pip install -e "$ARCHON_HOME"
+"$ARCHON_HOME/.venv/bin/archon" version
+```
+
+editable 安装让源码中的 OpenCode 补丁直接进入 `archon` CLI。依赖安装属于网络
+操作，执行前说明影响并征得用户同意。
+
+## 5. 从其他项目检查
+
+在当前 OpenCode 工作区运行：
+
+```bash
+python3 "$SKILL_DIR/scripts/archon_helper.py" doctor . --json
+```
+
+检查 `archon_home`、`archon_bin_ready`、版本、补丁状态和当前项目状态。新项目
+首次访问 Archon 源码目录时，OpenCode 可能请求 `external_directory` 权限。
+向用户展示目标路径，并将访问范围限定在该 Archon 安装目录。
+
+完成后进入 OpenCode 与 Lean 环境配置。

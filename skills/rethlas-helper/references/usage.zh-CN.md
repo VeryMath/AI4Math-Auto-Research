@@ -1,207 +1,124 @@
-# Rethlas 功能介绍与使用引导
+# 使用 Rethlas 解答自然语言数学题
 
-使用本文件介绍 Rethlas 的能力，并引导用户完成一次有实际意义的运行。命令要
-与用户选择的运行方式一致。
+Rethlas 读取 Markdown 数学题，生成非形式化证明蓝图，并由独立验证代理检查逻辑、
+引用和证明缺口。生成代理根据验证反馈进行多轮修订。
 
-## 目录
+## 1. 从任意对话定位 Rethlas
 
-1. 功能地图
-2. 启动验证服务
-3. 运行证明生成
-4. 添加自定义题目
-5. 提供私有参考资料
-6. 查看输出与日志
-7. 浏览结果网站
-8. 引导与排错方法
-
-## 1. 功能地图
-
-Rethlas 是一套自然语言数学推理系统，包含两个主要代理：
-
-- **生成代理：** 读取 Markdown 数学题，编写非形式化证明 blueprint。
-- **验证代理：** 检查 blueprint，通过本地 HTTP API 返回结构化判定。
-
-生成启动脚本会在多轮迭代中保持同一个模型 session，交替执行关闭检索和开启
-检索的轮次，依据 verifier 反馈修复证明，并在得到已验证 blueprint 或达到
-迭代上限时停止。
-
-配套功能包括：
-
-- 针对每道题提供 Markdown、TeX、文本或 PDF 参考资料；
-- 保存可复用的 memory artifacts；
-- 保存逐轮日志；
-- 分开保存草稿和已验证结果；
-- 使用 Zola 网站浏览带 LaTeX 公式的 Markdown 结果；
-- 在原有 Codex 旁边选择性加入 OpenCode 运行方式。
-
-只介绍与用户目标有关的功能，随后给出下一条具体命令。
-
-## 2. 启动验证服务
-
-生成前必须先启动验证服务。在 `agents/verification` 中激活对应环境。
-
-原有 Codex 验证服务：
+每次使用前运行：
 
 ```bash
-source .venv/bin/activate
-uvicorn api.server:app --host 127.0.0.1 --port 8091
+python3 "$SKILL_DIR/scripts/rethlas_helper.py" doctor --json
 ```
 
-安装补丁后可用的 OpenCode 验证服务：
+将输出中的 `repository` 设为 `TARGET`。登记路径有效时，直接进入解题流程。
+OpenCode 在新项目中请求外部目录权限时，向用户展示该路径并请求访问。
+
+## 2. 准备题目
+
+将题目保存到：
+
+```text
+$TARGET/agents/generation/data/<problem_id>.md
+```
+
+用户直接在对话中给出题目时，为它选择清晰的 `problem_id`，并将完整原题写入
+Markdown 文件。例子：
+
+```markdown
+# Problem
+
+Prove that every finite tree with at least two vertices has at least two leaves.
+```
+
+题目参考资料放入同名目录：
+
+```text
+data/<problem_id>.refs/
+```
+
+参考资料支持 Markdown、TeX、纯文本和 PDF。PDF 文本提取使用 `pdftotext`。
+
+## 3. 启动 OpenCode 验证服务
+
+在 OpenCode Desktop 的工作区终端中进入验证目录：
 
 ```bash
+cd "$TARGET/agents/verification"
 source .venv/bin/activate
 uvicorn api.server_opencode:app --host 127.0.0.1 --port 8091
 ```
 
-两者都使用 8091 端口，只运行与生成侧匹配的服务。保持该终端运行，先处理
-启动错误，再进入生成步骤。
-
-## 3. 运行证明生成
-
-打开另一个终端，进入 `agents/generation` 并激活环境。
-
-原有 Codex 工作流：
-
-```bash
-source .venv/bin/activate
-./tests/run_example.sh
-```
-
-OpenCode 工作流：
-
-```bash
-source .venv/bin/activate
-./tests/run_example_opencode.sh
-```
-
-运行 OpenCode 前，确认用户自己的 provider/API 已连接，并且已经选择模型：
-
-```bash
-opencode auth list
-opencode models
-```
-
-补丁不提供默认模型。不设置模型环境变量时，使用用户自己的 OpenCode 配置。
-需要固定生成和验证模型时，使用用户选定的模型标识：
-
-```bash
-OPENCODE_GENERATION_MODEL="provider/model" \
-  ./tests/run_example_opencode.sh
-```
+用户指定验证模型时：
 
 ```bash
 OPENCODE_VERIFICATION_MODEL="provider/model" \
   uvicorn api.server_opencode:app --host 127.0.0.1 --port 8091
 ```
 
-需要限制修复轮数时：
+确认 `http://127.0.0.1:8091/health` 返回正常状态，然后保持该终端会话运行。
+
+## 4. 运行证明生成
+
+在另一个工作区终端中运行：
 
 ```bash
-MAX_ITERATIONS=10 ./tests/run_example.sh
+cd "$TARGET/agents/generation"
+source .venv/bin/activate
+PROBLEM_FILE="data/<problem_id>.md" ./tests/run_example_opencode.sh
 ```
 
-OpenCode 运行时使用相应的 OpenCode 脚本。首次模型调用前先征得用户同意，
-并说明会消耗哪个 provider/model 的额度。
-
-## 4. 添加自定义题目
-
-将题目保存为 `agents/generation/data/` 下的 Markdown 文件，例如：
-
-```text
-agents/generation/data/my_problem.md
-```
-
-使用 Codex 运行：
+用户指定生成模型或迭代次数时：
 
 ```bash
-PROBLEM_FILE=data/my_problem.md ./tests/run_example.sh
+OPENCODE_GENERATION_MODEL="provider/model" \
+MAX_ITERATIONS=10 \
+PROBLEM_FILE="data/<problem_id>.md" \
+  ./tests/run_example_opencode.sh
 ```
 
-使用 OpenCode 运行：
+启动脚本在一次运行中维持同一个 OpenCode session，交替执行独立推理和资料检索，
+并根据验证报告修复证明。真实模型调用前向用户说明 provider/model 和额度消耗。
 
-```bash
-PROBLEM_FILE=data/my_problem.md ./tests/run_example_opencode.sh
-```
+## 5. 查看过程与结果
 
-支持子目录：
-
-```bash
-PROBLEM_FILE=data/modrep/modrep.md ./tests/run_example.sh
-```
-
-生成产物会保留题目的相对目录结构。
-
-## 5. 提供私有参考资料
-
-创建与题目同名 stem 的相邻目录：
+设题目相对路径为 `<problem_id>`，对应文件位于：
 
 ```text
-data/modrep/modrep.md
-data/modrep/modrep.refs/
+$TARGET/agents/generation/memory/opencode/<problem_id>/
+$TARGET/agents/generation/logs/opencode/<problem_id>/iter/
+$TARGET/agents/generation/results/opencode/<problem_id>/blueprint.md
+$TARGET/agents/generation/results/opencode/<problem_id>/blueprint_verified.md
 ```
 
-生成代理会先读取这些参考资料，再使用外部检索。优先使用 Markdown、TeX 或
-纯文本。PDF 支持需要 `pdftotext`，提取后的 PDF 文本写入 `.extracted/`。
+`blueprint.md` 保存当前证明蓝图。验证通过后，最终结果写入
+`blueprint_verified.md`。汇报时包含题目路径、模型、迭代次数、验证结论、结果路径
+和日志路径。
 
-除非用户明确希望纳入版本控制，否则不要将未公开或敏感参考资料加入 Git。
-
-## 6. 查看输出与日志
-
-原版 example 对应的路径为：
-
-```text
-memory/example/
-logs/example/iter/
-results/example/blueprint.md
-results/example/blueprint_verified.md
-```
-
-`blueprint.md` 保存当前草稿。验证成功后会出现
-`blueprint_verified.md`。没有生成已验证文件时，先检查逐轮日志和 verifier
-终端，再判断失败原因。
-
-OpenCode 的 example 产物隔离在：
-
-```text
-memory/opencode/example/
-logs/opencode/example/
-results/opencode/example/
-```
-
-这样 Codex 和 OpenCode 的运行结果不会互相覆盖。
-
-## 7. 浏览结果网站
-
-安装 Zola 后，在 `agents/generation` 中运行：
+安装 Zola 后，可在生成目录运行：
 
 ```bash
 ./site/serve.sh
 ```
 
-首次运行会下载 MATbook 主题，需要网络访问。网站在
-`http://localhost:3264` 本地提供服务，并按题目目录结构组织结果。
+结果网站地址为 `http://localhost:3264`。
 
-## 8. 引导与排错方法
+## 6. OpenCode Desktop 对话示例
 
-进行使用引导时：
+用户可以在任意项目的新对话中输入：
 
-1. 说明当前功能和预期结果。
-2. 确认工作目录与已激活的 `.venv`。
-3. 启动匹配的 verifier，确认 8091 端口正在监听。
-4. 展示或执行一条生成命令。
-5. 指出准确的结果和日志路径。
-6. 解释失败现象，并提出最小的下一项检查。
+> 用 Rethlas 证明：每棵至少有两个顶点的有限树都至少有两个叶子。请持续汇报
+> 生成、验证和修复过程，并给出最终证明蓝图与文件路径。
 
-常见检查项：
+Skill 应自动读取已登记的 `rethlas_home`，创建题目文件，启动验证服务和生成流程，
+并在当前对话中跟踪结果。
 
-- 8091 端口冲突或验证运行方式不匹配；
-- provider 尚未登录；
-- `PROBLEM_FILE` 路径错误；
-- 缺少 PDF 提取工具；
-- 生成和验证 MCP 连接状态；
-- 达到迭代上限后仍未通过验证；
-- 尚未选择用户自己的 OpenCode provider 或模型；
-- 所选 provider 不提供指定 model 或 variant。
+## 7. 常见检查项
 
-报告运行方式、模型、题目路径、结果路径、日志路径和最终验证状态。
+- 已登记路径移动或失效；
+- 新项目尚待确认 `external_directory` 权限；
+- 8091 端口占用；
+- OpenCode provider 登录状态；
+- `PROBLEM_FILE` 路径；
+- 生成侧与验证侧 MCP 状态；
+- 达到迭代上限后的证明缺口。
