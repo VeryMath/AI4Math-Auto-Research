@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -13,7 +13,11 @@ from typing import Any, Sequence
 
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
-MANIFEST_PATH = SKILL_ROOT / "assets" / "rethlas-opencode-compat.json"
+PATCH_PATH = SKILL_ROOT / "assets" / "rethlas-opencode-compat.patch"
+CONFIG_HOME = Path(
+    os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))
+).expanduser()
+INSTALLATION_CONFIG_PATH = CONFIG_HOME / "opencode" / "rethlas-helper.toml"
 
 REQUIRED_UPSTREAM_PATHS = (
     "README.md",
@@ -42,37 +46,10 @@ def run(
     )
 
 
-def load_manifest() -> dict[str, Any]:
-    try:
-        payload = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise HelperError(f"cannot read patch manifest: {exc}") from exc
-    if not isinstance(payload, dict):
-        raise HelperError("patch manifest must be a JSON object")
-    return payload
-
-
-def patch_path(manifest: dict[str, Any]) -> Path:
-    filename = manifest.get("patch_file")
-    if not isinstance(filename, str) or not filename:
-        raise HelperError("patch manifest has no valid patch_file")
-    path = MANIFEST_PATH.parent / filename
-    if not path.is_file():
-        raise HelperError(f"patch asset is missing: {path}")
-    return path
-
-
-def verify_patch_asset(manifest: dict[str, Any]) -> Path:
-    path = patch_path(manifest)
-    expected = manifest.get("patch_sha256")
-    if not isinstance(expected, str) or len(expected) != 64:
-        raise HelperError("patch manifest has no valid patch_sha256")
-    actual = hashlib.sha256(path.read_bytes()).hexdigest()
-    if actual != expected:
-        raise HelperError(
-            f"patch checksum mismatch: expected {expected}, got {actual}"
-        )
-    return path
+def patch_path() -> Path:
+    if not PATCH_PATH.is_file():
+        raise HelperError(f"patch asset is missing: {PATCH_PATH}")
+    return PATCH_PATH
 
 
 def resolve_repo(target: str) -> Path:
@@ -96,6 +73,85 @@ def resolve_repo(target: str) -> Path:
             + ", ".join(missing)
         )
     return root
+
+
+def installation_payload() -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "config_file": str(INSTALLATION_CONFIG_PATH),
+        "configured": False,
+        "valid": False,
+        "rethlas_home": None,
+    }
+    if not INSTALLATION_CONFIG_PATH.is_file():
+        return payload
+
+    try:
+        config_text = INSTALLATION_CONFIG_PATH.read_text(encoding="utf-8")
+    except OSError as exc:
+        payload["error"] = f"cannot read installation config: {exc}"
+        return payload
+
+    raw_home: Any = None
+    for line in config_text.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        key, separator, encoded_value = stripped.partition("=")
+        if separator and key.strip() == "rethlas_home":
+            try:
+                raw_home = json.loads(encoded_value.strip())
+            except json.JSONDecodeError as exc:
+                payload["error"] = (
+                    f"cannot parse rethlas_home in installation config: {exc}"
+                )
+                return payload
+            break
+
+    if not isinstance(raw_home, str) or not raw_home.strip():
+        payload["error"] = "installation config has no valid rethlas_home"
+        return payload
+
+    payload["configured"] = True
+    payload["rethlas_home"] = str(Path(raw_home).expanduser().resolve())
+    try:
+        root = resolve_repo(raw_home)
+    except HelperError as exc:
+        payload["error"] = str(exc)
+        return payload
+
+    payload["valid"] = True
+    payload["rethlas_home"] = str(root)
+    return payload
+
+
+def configured_repo() -> Path:
+    payload = installation_payload()
+    if payload.get("error"):
+        raise HelperError(f"installation configuration error: {payload['error']}")
+    if not payload["configured"]:
+        raise HelperError(
+            "Rethlas installation is not configured; run installation-set TARGET"
+        )
+    if not payload["valid"]:
+        detail = payload.get("error") or "configured path is unavailable"
+        raise HelperError(f"configured Rethlas installation is invalid: {detail}")
+    return Path(str(payload["rethlas_home"]))
+
+
+def resolve_target(target: str | None) -> Path:
+    if target:
+        return resolve_repo(target)
+    return configured_repo()
+
+
+def save_installation(root: Path) -> dict[str, Any]:
+    INSTALLATION_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    content = f"rethlas_home = {json.dumps(str(root), ensure_ascii=False)}\n"
+    try:
+        INSTALLATION_CONFIG_PATH.write_text(content, encoding="utf-8")
+    except OSError as exc:
+        raise HelperError(f"cannot write installation config: {exc}") from exc
+    return installation_payload()
 
 
 def git_output(root: Path, *arguments: str) -> str:
@@ -127,7 +183,7 @@ def command_info(name: str) -> dict[str, Any]:
     return {"available": path is not None, "path": path}
 
 
-def doctor_payload(root: Path, manifest: dict[str, Any], patch: Path) -> dict[str, Any]:
+def doctor_payload(root: Path, patch: Path) -> dict[str, Any]:
     status_lines = git_output(root, "status", "--short").splitlines()
     head = git_output(root, "rev-parse", "HEAD")
     branch = git_output(root, "branch", "--show-current")
@@ -137,32 +193,30 @@ def doctor_payload(root: Path, manifest: dict[str, Any], patch: Path) -> dict[st
     )
     origin = remote_result.stdout.strip() if remote_result.returncode == 0 else ""
 
-    files = manifest.get("files")
-    if not isinstance(files, list):
-        files = []
-
-    return {
+    payload = {
         "repository": str(root),
         "origin": origin,
         "branch": branch,
         "head": head,
-        "baseline_commit": manifest.get("baseline_commit"),
-        "at_baseline": head == manifest.get("baseline_commit"),
         "working_tree_entries": len(status_lines),
         "working_tree_status": status_lines,
         "patch_state": patch_state(root, patch),
-        "patched_files_present": {
-            str(path): (root / str(path)).exists() for path in files
-        },
         "generation_venv": (root / "agents/generation/.venv/bin/python").is_file(),
         "verification_venv": (
             root / "agents/verification/.venv/bin/python"
         ).is_file(),
         "commands": {
             name: command_info(name)
-            for name in ("git", "python3", "uv", "codex", "opencode")
+            for name in ("git", "python3", "uv", "opencode")
         },
     }
+    payload.update(
+        {
+            f"installation_{key}": value
+            for key, value in installation_payload().items()
+        }
+    )
+    return payload
 
 
 def print_payload(payload: dict[str, Any], *, as_json: bool) -> None:
@@ -171,12 +225,20 @@ def print_payload(payload: dict[str, Any], *, as_json: bool) -> None:
         return
 
     for key in (
+        "config_file",
+        "configured",
+        "valid",
+        "rethlas_home",
+        "error",
+        "installation_config_file",
+        "installation_configured",
+        "installation_valid",
+        "installation_rethlas_home",
+        "installation_error",
         "repository",
         "origin",
         "branch",
         "head",
-        "baseline_commit",
-        "at_baseline",
         "working_tree_entries",
         "patch_state",
         "generation_venv",
@@ -247,18 +309,28 @@ def remove_patch(root: Path, patch: Path) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Diagnose Rethlas and manage the bundled OpenCode patch."
+        description=(
+            "Remember a Rethlas installation, diagnose it, and manage the "
+            "bundled OpenCode patch."
+        )
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
+    show_parser = subparsers.add_parser("installation-show")
+    show_parser.add_argument("--json", action="store_true")
+
+    set_parser = subparsers.add_parser("installation-set")
+    set_parser.add_argument("target")
+    set_parser.add_argument("--json", action="store_true")
+
     for command in ("doctor", "patch-status"):
         subparser = subparsers.add_parser(command)
-        subparser.add_argument("target", nargs="?", default=".")
+        subparser.add_argument("target", nargs="?", default=None)
         subparser.add_argument("--json", action="store_true")
 
     for command in ("patch-apply", "patch-remove"):
         subparser = subparsers.add_parser(command)
-        subparser.add_argument("target", nargs="?", default=".")
+        subparser.add_argument("target", nargs="?", default=None)
 
     return parser
 
@@ -266,13 +338,20 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
-        manifest = load_manifest()
-        patch = verify_patch_asset(manifest)
-        root = resolve_repo(args.target)
+        if args.command == "installation-show":
+            print_payload(installation_payload(), as_json=args.json)
+            return 0
+        if args.command == "installation-set":
+            root = resolve_repo(args.target)
+            print_payload(save_installation(root), as_json=args.json)
+            return 0
+
+        patch = patch_path()
+        root = resolve_target(args.target)
 
         if args.command == "doctor":
             print_payload(
-                doctor_payload(root, manifest, patch),
+                doctor_payload(root, patch),
                 as_json=args.json,
             )
         elif args.command == "patch-status":
@@ -280,7 +359,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                 {
                     "repository": str(root),
                     "patch_state": patch_state(root, patch),
-                    "baseline_commit": manifest.get("baseline_commit"),
                     "head": git_output(root, "rev-parse", "HEAD"),
                 },
                 as_json=args.json,

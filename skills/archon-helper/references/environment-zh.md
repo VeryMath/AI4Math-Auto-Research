@@ -1,16 +1,22 @@
-# 环境配置流程
+# 配置 Archon 的 OpenCode 与 Lean 环境
 
-## 目录
+本阶段检查 Archon CLI、Lean 工具链、OpenCode provider 和当前项目配置。
 
-1. 公共环境
-2. 配置选定的运行器
-3. 可选环境
-4. Archon 项目配置
-5. 验证与排错
+## 1. 解析 Archon 安装与当前项目
 
-## 1. 公共环境
+```bash
+python3 "$SKILL_DIR/scripts/archon_helper.py" doctor "$PROJECT" --json
+```
 
-先检测，随后逐项引导用户处理缺失项：
+从输出取得 `ARCHON_HOME`、`ARCHON_BIN`、补丁状态和项目状态。CLI 文件位于：
+
+```text
+$ARCHON_HOME/.venv/bin/archon
+```
+
+后续命令统一使用该绝对路径。
+
+## 2. 检查基础工具
 
 ```bash
 python3 --version
@@ -19,67 +25,37 @@ elan --version
 lean --version
 lake --version
 uv --version
+opencode --version
 ```
 
-核心要求：
+各组件用途：
 
 - Python 3.10+：运行 Archon CLI；
 - Git：管理 Archon 源码和项目历史；
-- Elan、Lean、Lake：构建 Lean 项目；
-- uv：启动 Lean-LSP MCP。
+- Elan、Lean、Lake：构建形式化项目；
+- uv：启动 Lean-LSP MCP；
+- OpenCode：运行 Archon agent 与 subagent。
 
-缺少工具时先识别操作系统、包管理器和用户现有安装方式。优先采用对应项目的
-当前官方安装说明；软件安装方式可能变化，不凭记忆给出未经核对的下载命令。
-全局安装、修改 shell 启动文件或写入系统目录前说明影响。
+软件安装方式可能随平台变化。检查当前操作系统和官方安装说明，并在联网安装前
+征得用户同意。
 
-## 2. 配置选定的运行器
-
-只配置用户已经选择的运行器。
-
-### 原版 Claude Code
-
-检查：
+## 3. 检查 OpenCode provider 与模型
 
 ```bash
-command -v claude
-claude --version
-```
-
-如果 Claude Code 不可用，回到 `SKILL.md` 的运行器选择，不要继续假设原版能够
-运行。用户选择安装 Claude Code 时，使用当前官方安装说明，并引导用户在自己的
-终端完成登录；不索取账号或凭据。
-
-### OpenCode
-
-检查 CLI 与已有登录：
-
-```bash
-opencode --version
 opencode auth list
-```
-
-没有可用 provider 时：
-
-```bash
-opencode auth login
-```
-
-先问用户准备用自己的哪种订阅或 API provider，再带他们完成 OpenCode 的交互式
-登录。不要默认选择 DeepSeek、OpenAI、Anthropic 或任何其他 provider，也不要
-替用户默认指定模型。
-
-需要固定模型时，让用户先查看自己的可用模型：
-
-```bash
 opencode models
 ```
 
-确认完整的 `provider/model` ID 后再写配置。不要求用户把密钥发到对话中，不打印
-认证文件，不把密钥写入 `.archon/config.json`。
+provider 连接在 OpenCode 中通过 `/connect` 或相应登录界面完成。用户选择自己的
+provider、模型和 variant。登录信息保存在 OpenCode 用户配置中。
 
-## 3. 可选环境
+需要为 Archon 项目指定模型时，在 `.archon/config.json` 的
+`harnesses.opencode` 中设置完整的 `provider/model` 标识。修改前读取现有配置，
+并维护其他项目字段。
 
-按用户要使用的功能检查：
+## 4. 检查可选工具
+
+根据任务检查：
 
 ```bash
 node --version
@@ -89,83 +65,51 @@ pdftotext -v
 leanblueprint --help
 ```
 
-- Node.js/npm：Dashboard 构建和运行；
-- ripgrep：更快的源码检索；
-- Poppler：读取 PDF 参考材料；
-- LeanBlueprint：生成和渲染数学 blueprint。
+- Node.js/npm：Archon Dashboard；
+- ripgrep：源码检索；
+- Poppler：PDF 材料提取；
+- LeanBlueprint：数学 blueprint 的生成与渲染。
 
-可选工具缺失时只限制相关功能，不阻塞普通 `init`、`loop` 或 `lake build`。
+## 5. 初始化当前项目
 
-真实请求会消耗 provider 额度。仅在用户明确同意后运行最小请求；平时用
-所选运行器的登录状态和 Archon 的 `doctor --skip-auth` 做静态检查。
-
-## 4. Archon 项目配置
-
-选择原版 Claude Code 时，直接运行 `archon init <project>`，让项目沿用默认
-`claude-code` harness。
-
-选择 OpenCode 时，补丁应用并完成 `init --harness opencode` 后检查
-`<project>/.archon/config.json`：
-
-```json
-{
-  "loop": {
-    "harness": "opencode",
-    "parallel": true,
-    "max_parallel": 4
-  },
-  "harnesses": {
-    "opencode": {
-      "runner": "opencode",
-      "mcp": "lean-lsp",
-      "prompt_variant": "opencode"
-    }
-  },
-  "multilane": {
-    "enabled": false
-  }
-}
-```
-
-这是相关字段示例，不要用它覆盖完整配置。需要固定模型时只在
-`harnesses.opencode` 中增加：
-
-```json
-"model": "provider/model"
-```
-
-检查 `loop.roles.<role>` 与 `subagents.<name>.harness`，避免局部配置覆盖回
-`claude-code`。
-
-## 5. 验证与排错
-
-项目初始化后先运行：
+项目尚未初始化时运行：
 
 ```bash
-<archon-bin> doctor <project> --skip-auth
+"$ARCHON_BIN" init "$PROJECT" --harness opencode
 ```
 
-用户同意真实 provider 测试后运行：
+已有 `.archon/config.json` 时，先检查 doctor 输出。项目需要补齐 OpenCode 文件时，
+向用户说明 re-init 会更新的 Archon 管理文件，再运行相同命令。
 
-```bash
-<archon-bin> doctor <project>
+OpenCode 项目的关键状态为：
+
+```text
+.archon/config.json: loop.harness = opencode
+.archon/config.json: multilane.enabled = false
+.opencode/skills/lean4/SKILL.md
+.opencode/tools/archon-subagent.py
 ```
 
-再验证 Lean：
+## 6. 检查项目
+
+运行 Archon 项目检查：
 
 ```bash
-cd <project>
+"$ARCHON_BIN" doctor "$PROJECT" --skip-auth
+```
+
+随后检查 Lean 项目：
+
+```bash
+cd "$PROJECT"
 lake build
 ```
 
-常见问题：
+用户批准真实 provider 请求后，可运行：
 
-- 找不到 `archon`：固定使用 `<archon-dir>/.venv/bin/archon`。
-- 原版找不到 `claude`：确认 Claude Code 已安装且当前 shell 可以访问；仍不可用
-  时回到运行器选择。
-- 找不到 `opencode`：检查运行 Archon 的 shell 是否拥有同一 `PATH`；必要时
-  在 `harnesses.opencode.bin` 配置绝对路径。
-- provider 请求失败：检查所选运行器的登录状态、网络、额度和模型权限。
-- doctor 仍检查 Claude：确认 `loop.harness`、role override、subagent override
-  均指向 OpenCode，并重新执行 `init --harness opencode`。
-- Lean-LSP 不可用：检查 uv、项目 `.opencode/` 文件和 `lake build`。
+```bash
+"$ARCHON_BIN" doctor "$PROJECT"
+```
+
+汇报 CLI 版本、Lean 工具链、OpenCode provider、项目 harness、Lean-LSP 状态和
+构建结果。真实模型调用前说明 provider/model 与额度消耗。

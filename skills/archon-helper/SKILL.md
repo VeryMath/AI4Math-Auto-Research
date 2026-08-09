@@ -1,114 +1,153 @@
 ---
 name: archon-helper
-description: 安装或 clone Archon，检测原版 Claude Code 运行环境是否可用，引导用户配置自己的 Claude/OpenCode provider 和模型，按用户选择应用 OpenCode 兼容补丁，并介绍、运行或排查 Archon 的各项功能。用于安装 Archon、配置 Python/Lean/uv/agent 环境、选择原版 Claude Code 或 OpenCode、迁移已有项目，以及使用 init/dag/loop/discuss/resume/extract/merge/refactor/scope/subagent 等功能。
+description: Install and configure Archon for OpenCode, remember its user-level installation path, locate its CLI from any OpenCode Desktop project or conversation, and run Lean formalization workflows in the current project. Use whenever the user asks to install Archon, formalize mathematics with Archon, initialize an Archon project, run or resume Archon, inspect results, or use init/dag/loop/discuss/dashboard/extract/merge/refactor/peers/scope/subagents. 用于在 OpenCode 中安装和配置 Archon、记住本机安装路径、从任意项目或新对话定位 Archon CLI，以及在当前项目运行 Lean 形式化流程。
 ---
 
-# Archon Helper
+# Archon Helper for OpenCode
 
-带用户完成四件事：安装 Archon、选定运行器、配置环境、开始使用。根据用户当前
-情况往下走，别把整份检查清单一次性丢给用户。始终分清两个目录：
+Use this skill as the global OpenCode entry point for Archon. Keep two paths
+explicit throughout the task:
 
-- `<archon-dir>`：Archon CLI 的源码检出；
-- `<project>`：用户要形式化的 Lean/Archon 项目。
+- `ARCHON_HOME`: remembered Archon source and CLI installation;
+- `PROJECT`: current Lean/Archon project selected by the user.
 
-## 1. 先把 Archon 装好
+## Resolve the installation first
 
-阅读
-[安装与 clone 流程](references/install-zh.md)。
-
-先看看用户本机有没有 Archon 源码或可用的 `archon`。需要 clone 时，告诉用户
-准备放在哪里、使用哪个上游版本，再执行网络操作。保留已有目录和改动；后续固定
-使用 `<archon-dir>/.venv/bin/archon`，避免误用系统里的另一份 Archon。
-
-源码准备好以后，先别急着打补丁，接着判断用户该走原版 Claude Code 还是
-OpenCode。
-
-## 2. 先问清楚这次用 Claude Code 还是 OpenCode
-
-先实际检查：
+Set `SKILL_DIR` to the base directory reported when OpenCode loads this skill.
+Read the user-level installation record:
 
 ```bash
-command -v claude
-claude --version
-test -f <archon-dir>/src/archon/agents/opencode.py
+python3 "$SKILL_DIR/scripts/archon_helper.py" installation-show --json
 ```
 
-然后按检测结果跟用户说：
+Interpret the result:
 
-- **没有 Claude Code，也没有补丁：**
+- `configured: true` and `valid: true`: set `ARCHON_HOME` and `ARCHON_BIN` from
+  `archon_home` and `archon_bin`.
+- an `error` field: report the saved path and configuration error, then ask for
+  the intended Archon installation.
+- `configured: false`: enter the install flow and ask for an installation
+  destination when the user has not supplied one.
 
-  > 原版 Archon 0.3.3 通过 Claude Code 运行 agent，但当前没有检测到可用的
-  > Claude Code。安装 OpenCode 兼容补丁后，核心 agent 和 subagent 会改由
-  > OpenCode 执行。要安装这个补丁吗？
+OpenCode may request `external_directory` approval for `ARCHON_HOME` in a new
+project. Explain the saved Archon installation path and keep the approved scope
+on that directory.
 
-  如果用户不装，说明 agent 流程目前还跑不起来，并询问是否需要引导安装
-  Claude Code。
+## Resolve the target project
 
-- **已经有可用的 Claude Code，但还没有补丁：**
+Use the path named by the user. Otherwise set `PROJECT` to the current OpenCode
+workspace. Inspect installation and project state together:
 
-  > 已检测到可用的 Claude Code。你想直接使用原版 Archon，还是安装 OpenCode
-  > 兼容补丁？
+```bash
+python3 "$SKILL_DIR/scripts/archon_helper.py" doctor "$PROJECT" --json
+```
 
-- **OpenCode 补丁已经安装：**
+Use these fields to route the next action:
 
-  直接报告补丁已存在，不再问要不要安装。如果 Claude Code 也可用，询问这次想
-  用 Claude Code 还是 OpenCode；如果 Claude Code 不可用，就确认继续使用
-  OpenCode。
+- `project_initialized`: whether `.archon/config.json` exists;
+- `project_harness`: expected value `opencode` after initialization;
+- `project_multilane_enabled`: expected value `false` for this compatibility
+  patch;
+- `project_opencode_skill` and `project_opencode_subagent`: project support
+  files installed by `init --harness opencode`.
 
-用户已经明确选过运行器时，不重复问。先记住这次选择，后面的环境配置和 Archon
-命令都跟着这个选择走。
+## Route the request
 
-## 3. 陪用户把环境配好
+- **Install or repair Archon:** follow the installation, environment, and patch
+  phases.
+- **Initialize the current project:** run `init --harness opencode` with
+  `ARCHON_BIN` after explaining the files Archon will create.
+- **Formalize mathematics:** inspect the project, prepare its statement or
+  source materials, then run `dag`, `loop`, or the user-selected command.
+- **Continue work:** inspect current logs and run `loop --resume` with the
+  requested phase.
+- **Discuss or inspect:** use `discuss`, `dashboard`, `log`, or project files.
+- **Manage several projects:** use `extract`, `merge`, `peers`, or `scope` after
+  confirming all paths involved.
 
-阅读
-[环境配置流程](references/environment-zh.md)。
+## Phase 1 — Install and remember Archon
 
-先检测 Python、Git、Lean/Elan/Lake、uv 和所选运行器，再告诉用户哪些已经就绪、
-哪些还缺。不要只报一串命令；每遇到一个需要用户决定的地方，解释用途后再问。
+Read [install-zh.md](references/install-zh.md).
 
-- 选择原版时，引导用户完成自己的 Claude Code 登录。
-- 选择 OpenCode 时，引导用户用 `opencode auth login` 连接自己的订阅或 API
-  provider，并从可用模型中选择。不要替用户默认选择 DeepSeek 或任何其他
-  provider/model。
-- 不索取或显示密钥。安装全局工具、启动登录或发起付费模型请求前先问用户。
+Locate a recognized Archon source checkout or clone the supported upstream
+revision. Create `<archon-home>/.venv` and install Archon in editable mode.
+After the repository root is recognized, save its absolute path:
 
-## 4. 用户选择 OpenCode 时再打补丁
+```bash
+python3 "$SKILL_DIR/scripts/archon_helper.py" \
+  installation-set "$ARCHON_HOME" --json
+```
 
-选择原版 Claude Code 时跳过这一步。选择 OpenCode，且补丁尚未安装时，阅读
-[补丁确认、应用与验证](references/patch-zh.md)。
+The command writes machine-local configuration to the `config_file` shown in
+its output. Derive `ARCHON_BIN` from the saved installation on every task.
 
-先运行兼容性检查，再应用补丁。补丁只修改源码工作区，不替用户提交。发现不相关
-改动或版本不匹配就停下来说明情况，不强行套用。
+## Phase 2 — Configure OpenCode and Lean
 
-应用后重新用 `init --harness opencode` 初始化目标项目，并确认
-`loop.harness = "opencode"`、`multilane.enabled = false`。不要在补丁里
-预设 provider、模型或 API 凭据。
+Read [environment-zh.md](references/environment-zh.md).
 
-## 5. 最后带用户把 Archon 跑起来
+Inspect Python, Git, Elan, Lean, Lake, uv, and OpenCode. Use the user's existing
+OpenCode provider configuration and model selection. Keep login information in
+the user-level OpenCode store. Explain network installations and real provider
+requests before asking for approval.
 
-阅读
-[Archon 功能与使用引导](references/usage-zh.md)。
+## Phase 3 — Install the OpenCode compatibility patch
 
-先问用户现在想做什么，再只介绍相关功能：
+Read [patch-zh.md](references/patch-zh.md).
 
-- 新建或接入项目：`init`
-- 整理数学依赖：`dag`
-- 自动形式化：`loop`
-- 接着中断任务：`loop --resume`
-- 讨论阻塞：`discuss`
-- 查看进度：`dashboard`
-- 拆分、合并或重构：`extract`、`merge`、`refactor`
-- 多项目协作：`peers`、`scope`
+Inspect patch state from the remembered installation:
 
-原版 Claude Code 流程使用上游命令；OpenCode 流程显式选择
-`--harness opencode` 或使用项目里已经保存的 OpenCode harness。说明这条命令
-会做什么、会改哪些文件、用户应该看什么结果，然后陪用户跑完第一条有用的命令。
+```bash
+python3 "$SKILL_DIR/scripts/archon_helper.py" patch-status --json
+```
 
-## 做事方式
+Apply the patch after the user approves the Archon source change:
 
-- 用自然语言汇报检测结果，一次只问一个真正需要用户决定的问题。
-- 不对用户说“授权门”“不变量”“阶段完成标准”等内部流程词。
-- 保留用户的源码和 Git 改动；不擅自暂存、重置、提交或覆盖。
-- OpenCode 流程不运行 `archon setup`，因为 v0.3.3 会安装 Claude Code。
-- 补丁版不运行 `archon update`，也不启用 multilane。
-- 未经用户同意，不运行会调用真实模型的测试。
+```bash
+python3 "$SKILL_DIR/scripts/archon_helper.py" patch-apply
+```
+
+The patch targets Archon 0.3.3. It registers the OpenCode harness for init,
+plan, prover, review, resume, subagents, and other agent-backed commands.
+
+## Phase 4 — Initialize and run the current project
+
+Read [usage-zh.md](references/usage-zh.md).
+
+For a new project:
+
+```bash
+"$ARCHON_BIN" init "$PROJECT" --harness opencode
+```
+
+Inspect the project again, then choose the command that matches the request.
+Typical examples:
+
+```bash
+"$ARCHON_BIN" dag "$PROJECT" --max-iterations 4
+"$ARCHON_BIN" loop "$PROJECT" --max-iterations 3
+"$ARCHON_BIN" loop "$PROJECT" --resume
+"$ARCHON_BIN" discuss "$PROJECT" --harness opencode
+```
+
+State the selected provider/model and expected quota use before the first
+model-backed operation. Follow logs and report Lean files, build state, Archon
+phase, and exact result paths in the current OpenCode Desktop conversation.
+
+## Shared rules
+
+- Install this skill globally for cross-project use:
+  `~/.config/opencode/skills/archon-helper/`.
+- Resolve `ARCHON_HOME` from user configuration in every new conversation.
+- Resolve `PROJECT` from the current workspace or the user's explicit path.
+- Preserve user source, Lean files, and Git work in both directories.
+- Use `ARCHON_BIN` from the remembered editable installation.
+- Keep OpenCode credentials in user-level storage.
+- Ask before repository edits, network installation, provider login, real
+  model calls, staging, commits, pushes, and cross-project writes.
+- Keep `multilane.enabled = false` for the Archon 0.3.3 OpenCode patch.
+
+Bundled resources:
+
+- `scripts/archon_helper.py`: installation path, project doctor, patch status,
+  and patch installation commands.
+- `assets/patches/archon-v0.3.3-opencode.patch`: OpenCode harness patch.

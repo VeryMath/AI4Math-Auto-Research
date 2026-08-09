@@ -1,121 +1,98 @@
-# Manage the OpenCode Compatibility Patch
+# Install the OpenCode Compatibility Files
 
-Read this reference only after the user explicitly chooses OpenCode support,
-or when the user asks to inspect, update, or remove an existing installation.
+Use this phase to connect the Rethlas generation and verification agents to
+OpenCode.
 
-## Contents
+## 1. Patch contents
 
-1. What the patch does
-2. Preflight
-3. Install
-4. Validate
-5. Remove
-6. Report
+The bundled Git patch adds:
 
-## What the patch does
-
-The bundled patch is a standard Git patch against upstream commit
-`974b82ccfbcb07c405a233886e6e8d1d4db84828`. It adds nine OpenCode-only files:
-
-- English and Simplified Chinese OpenCode guides;
+- OpenCode usage guides;
 - generation and verification `opencode.json` files;
 - OpenCode-specific `AGENTS` instructions;
 - an OpenCode generation runner;
 - an OpenCode verification API;
 - an OpenCode recursive-proving skill.
 
-It does not edit the original Codex files. Codex commands continue to work
-after installation. It also does not bundle a provider, model, variant, API
-key, or other credential; OpenCode uses the user's own configuration.
+Provider, model, variant, and API credentials come from the user's OpenCode
+configuration.
 
-## Preflight
+## 2. Check applicability
 
-Run:
+`TARGET` is already resolved from user configuration. Run:
 
 ```bash
-python3 "$SKILL_DIR/scripts/rethlas_helper.py" patch-status "$TARGET"
+python3 "$SKILL_DIR/scripts/rethlas_helper.py" patch-status
 git -C "$TARGET" status --short
 git -C "$TARGET" branch --show-current
 git -C "$TARGET" rev-parse HEAD
 ```
 
-Preserve unrelated work. Apply only on a user-approved non-default branch;
-create or switch branches when needed. Do not stage or commit unless the user
-also requested it.
+Report the branch, worktree entries, and `patch_state`. Apply the patch on a
+feature branch approved by the user. When the state is partial or conflicting,
+show the relevant paths and ask how the user wants to handle them.
 
-Stop when:
+## 3. Apply the patch
 
-- any manifest path already exists with unrelated content;
-- the repository contains a partial patch installation;
-- `git apply --check` fails;
-- the branch choice is unresolved.
-
-## Install
-
-Use the idempotent helper:
+After the user confirms the branch and repository edit, run:
 
 ```bash
-python3 "$SKILL_DIR/scripts/rethlas_helper.py" patch-apply "$TARGET"
+python3 "$SKILL_DIR/scripts/rethlas_helper.py" patch-apply
 ```
 
-The helper validates the packaged checksum and applicability before writing.
-A newer upstream revision is acceptable only when the applicability check
-succeeds.
+The helper runs `git apply --check` and then applies the bundled patch. Inspect
+the state again:
 
-For direct inspection, the assets are:
+```bash
+python3 "$SKILL_DIR/scripts/rethlas_helper.py" patch-status
+```
+
+Expected output:
 
 ```text
-assets/rethlas-opencode-compat.patch
-assets/rethlas-opencode-compat.json
+patch_state: installed
 ```
 
-Do not use `--reject`, overwrite conflicts, or manually copy only part of the
-manifest.
+## 4. Inspect OpenCode entry points
 
-## Validate
-
-Run the status command again and confirm `patch_state: installed`. Then check:
+Run from each agent directory:
 
 ```bash
-python3 -m json.tool "$TARGET/agents/generation/opencode.json"
-python3 -m json.tool "$TARGET/agents/verification/opencode.json"
-bash -n "$TARGET/agents/generation/tests/run_example_opencode.sh"
-```
-
-With OpenCode configured, inspect agents and MCP servers from the appropriate
-directories:
-
-```bash
+cd "$TARGET/agents/generation"
 opencode agent list
 opencode mcp list
 ```
 
-Confirm that original tracked files have no diff. The installed usage guides
-are:
-
-- `README.opencode.md`
-- `README.opencode.zh-CN.md`
-
-Before a first run, guide the user through `opencode auth list`, `/connect`,
-and `opencode models`. Let the user choose their coding plan or API provider
-and model. Do not insert a fallback model into project files or launch
-scripts.
-
-Ask before any model-backed smoke test.
-
-## Remove
-
-Removal is safe only while all nine files still match the patch:
-
 ```bash
-python3 "$SKILL_DIR/scripts/rethlas_helper.py" patch-remove "$TARGET"
+cd "$TARGET/agents/verification"
+opencode agent list
+opencode mcp list
 ```
 
-The helper performs a reverse applicability check and refuses to delete a
-modified file. Report conflicts instead of forcing removal.
+Confirm that the generation directory exposes proof agents and the reasoning
+MCP, and that the verification directory exposes its agent and verification
+MCP. State the provider/model and expected quota use before a real model call,
+then ask for approval.
 
-## Report
+## 5. Restore the pre-patch state
 
-Report the patch state, branch, `HEAD`, checksum result, conflicts, validation
-results, and whether the user selected Codex, OpenCode, or both for subsequent
-usage guidance.
+When the user explicitly requests restoration and the patch state is complete,
+run:
+
+```bash
+python3 "$SKILL_DIR/scripts/rethlas_helper.py" patch-remove
+```
+
+The helper checks reverse applicability before applying the patch in reverse.
+Report affected paths and Git output when local changes cause a conflict.
+
+## 6. Report
+
+Report:
+
+- Rethlas installation path;
+- branch and `HEAD`;
+- patch state;
+- OpenCode agent and MCP listings;
+- provider/model selected by the user;
+- the next real problem-solving command.

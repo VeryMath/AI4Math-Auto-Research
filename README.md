@@ -34,8 +34,8 @@ the task and follow its package-local instructions.
 | [`agent-laboratory-workflow`](skills/agent-laboratory-workflow/) | Deploy, validate, and launch bounded Agent Laboratory auto-research runs. | [`README`](skills/agent-laboratory-workflow/README.md) · [`SKILL`](skills/agent-laboratory-workflow/SKILL.md) |
 | [`discover-math-problems`](skills/discover-math-problems/) | Convert fuzzy background into ranked problems, conjecture lattices, evidence ledgers, and work orders. | [`README`](skills/discover-math-problems/README.md) · [`SKILL`](skills/discover-math-problems/SKILL.md) |
 | [`proof-blueprint-review`](skills/proof-blueprint-review/) | Build proof blueprints, run verifier-style reviews, record repair hints, and issue strict proof-status reports. | [`README`](skills/proof-blueprint-review/README.md) · [`SKILL`](skills/proof-blueprint-review/SKILL.md) |
-| [`rethlas-helper`](skills/rethlas-helper/) | Install and configure Rethlas, choose Codex or OpenCode, safely manage the additive OpenCode patch, and guide proof-generation runs. | [`SKILL`](skills/rethlas-helper/SKILL.md) |
-| [`archon-helper`](skills/archon-helper/) | Install and configure Archon, choose Claude Code or OpenCode, apply the compatibility patch, and guide formalization workflows. | [`SKILL`](skills/archon-helper/SKILL.md) |
+| [`rethlas-helper`](skills/rethlas-helper/) | Install Rethlas for OpenCode, remember its local path, and run natural-language proof generation from any OpenCode project. | [`SKILL`](skills/rethlas-helper/SKILL.md) |
+| [`archon-helper`](skills/archon-helper/) | Install Archon for OpenCode, remember its local path, and run formalization workflows from any OpenCode project. | [`SKILL`](skills/archon-helper/SKILL.md) |
 | [`graph-theory-researcher`](skills/graph-theory-researcher/) | Read graph-theory papers, select questions through user gates, run bounded research, and prepare verified LaTeX/PDF artifacts. | [`README`](skills/graph-theory-researcher/README.md) · [`SKILL`](skills/graph-theory-researcher/SKILL.md) |
 | [`extremal-graph-problem-suggester`](skills/extremal-graph-problem-suggester/) | Generate small-move candidate variants for extremal graph problems with citation, novelty, and feasibility checks. | [`README`](skills/extremal-graph-problem-suggester/README.md) · [`SKILL`](skills/extremal-graph-problem-suggester/SKILL.md) |
 | [`open-problem-research-pipeline`](skills/open-problem-research-pipeline/) | Run a staged literature-search, method-analysis, proof-framework, and report workflow for open mathematical problems. | [`README`](skills/open-problem-research-pipeline/README.md) · [`SKILL`](skills/open-problem-research-pipeline/SKILL.md) |
@@ -86,6 +86,15 @@ ln -s "$PWD/skills/open-problem-research-pipeline" ~/.codex/skills/open-problem-
 
 If your agent uses a different local Skill directory, replace `~/.codex/skills` with that configured path.
 
+OpenCode Desktop discovers global Skills from `~/.config/opencode/skills`.
+Install the Rethlas and Archon helpers globally with:
+
+```bash
+mkdir -p ~/.config/opencode/skills
+ln -s "$PWD/skills/rethlas-helper" ~/.config/opencode/skills/rethlas-helper
+ln -s "$PWD/skills/archon-helper" ~/.config/opencode/skills/archon-helper
+```
+
 ## Quick Start
 
 Clone the repository and choose a package:
@@ -113,13 +122,15 @@ For Agent Laboratory runs, start with:
 skills/agent-laboratory-workflow/SKILL.md
 ```
 
-For guided Rethlas setup and Codex/OpenCode use, start with:
+For a persistent Rethlas installation available from OpenCode projects and
+conversations, start with:
 
 ```text
 skills/rethlas-helper/SKILL.md
 ```
 
-For guided Archon setup and Claude Code/OpenCode use, start with:
+For a persistent Archon installation available from OpenCode projects and
+conversations, start with:
 
 ```text
 skills/archon-helper/SKILL.md
