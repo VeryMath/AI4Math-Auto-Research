@@ -25,6 +25,9 @@ scripts, and references.
 - `skills/archon-helper/`: install Archon for OpenCode, remember its local
   path, resolve it from new projects and conversations, and guide
   formalization workflows.
+- `skills/danus-helper/`: install the OpenCode adaptation of Danus, remember
+  its local path, and guide multi-agent mathematics research, monitoring,
+  recovery, progress summaries, and paper writing.
 - `skills/graph-theory-researcher/`: stage graph-theory reading, question
   selection, bounded research, verification, and LaTeX/PDF delivery.
 - `skills/extremal-graph-problem-suggester/`: generate small-move candidate

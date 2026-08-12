@@ -1,0 +1,4 @@
+interface:
+  display_name: "Danus Helper"
+  short_description: "Install and operate Danus through OpenCode"
+  default_prompt: "Use $danus-helper to locate or install Danus, prepare its OpenCode adaptation, and help me run a mathematics research project."
