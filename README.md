@@ -8,7 +8,7 @@ orchestration, and proof-blueprint review.
 [中文说明](README.zh-CN.md) · [Contributors](CONTRIBUTORS.md) · [Skill packages](#skill-packages) · [Installation](#installation) · [Quick start](#quick-start) · [References](#related-public-references) · [Security model](#security-and-scope)
 
 ![version](https://img.shields.io/badge/version-0.1.0-blue)
-![skills](https://img.shields.io/badge/skills-9-2ea44f)
+![skills](https://img.shields.io/badge/skills-10-2ea44f)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
 </div>
@@ -37,6 +37,7 @@ the task and follow its package-local instructions.
 | [`rethlas-helper`](skills/rethlas-helper/) | Install Rethlas for OpenCode, remember its local path, and run natural-language proof generation from any OpenCode project. | [`SKILL`](skills/rethlas-helper/SKILL.md) |
 | [`archon-helper`](skills/archon-helper/) | Install Archon for OpenCode, remember its local path, and run formalization workflows from any OpenCode project. | [`SKILL`](skills/archon-helper/SKILL.md) |
 | [`danus-helper`](skills/danus-helper/) | Install the OpenCode adaptation of Danus, remember its local path, and run multi-agent mathematics research, monitoring, summaries, and paper writing. | [`SKILL`](skills/danus-helper/SKILL.md) · [`中文安装`](docs/danus-helper-setup.md) · [`中文示例`](docs/danus-closed-graph-example.md) |
+| [`danus-helper-dsh`](skills/danus-helper-dsh/) | Install the DeepSeek Harness adaptation of Danus, remember its local path, and run the same research, verification, summary, and paper workflows. | [`SKILL`](skills/danus-helper-dsh/SKILL.md) · [`中文安装`](docs/danus-helper-setup.md) · [`中文示例`](docs/danus-closed-graph-example.md) |
 | [`graph-theory-researcher`](skills/graph-theory-researcher/) | Read graph-theory papers, select questions through user gates, run bounded research, and prepare verified LaTeX/PDF artifacts. | [`README`](skills/graph-theory-researcher/README.md) · [`SKILL`](skills/graph-theory-researcher/SKILL.md) |
 | [`extremal-graph-problem-suggester`](skills/extremal-graph-problem-suggester/) | Generate small-move candidate variants for extremal graph problems with citation, novelty, and feasibility checks. | [`README`](skills/extremal-graph-problem-suggester/README.md) · [`SKILL`](skills/extremal-graph-problem-suggester/SKILL.md) |
 | [`open-problem-research-pipeline`](skills/open-problem-research-pipeline/) | Run a staged literature-search, method-analysis, proof-framework, and report workflow for open mathematical problems. | [`README`](skills/open-problem-research-pipeline/README.md) · [`SKILL`](skills/open-problem-research-pipeline/SKILL.md) |
@@ -57,6 +58,7 @@ Skill paths:
 - skills/rethlas-helper
 - skills/archon-helper
 - skills/danus-helper
+- skills/danus-helper-dsh
 - skills/graph-theory-researcher
 - skills/extremal-graph-problem-suggester
 - skills/open-problem-research-pipeline
@@ -82,6 +84,7 @@ ln -s "$PWD/skills/proof-blueprint-review" ~/.codex/skills/proof-blueprint-revie
 ln -s "$PWD/skills/rethlas-helper" ~/.codex/skills/rethlas-helper
 ln -s "$PWD/skills/archon-helper" ~/.codex/skills/archon-helper
 ln -s "$PWD/skills/danus-helper" ~/.codex/skills/danus-helper
+ln -s "$PWD/skills/danus-helper-dsh" ~/.codex/skills/danus-helper-dsh
 ln -s "$PWD/skills/graph-theory-researcher" ~/.codex/skills/graph-theory-researcher
 ln -s "$PWD/skills/extremal-graph-problem-suggester" ~/.codex/skills/extremal-graph-problem-suggester
 ln -s "$PWD/skills/open-problem-research-pipeline" ~/.codex/skills/open-problem-research-pipeline
@@ -98,6 +101,10 @@ ln -s "$PWD/skills/rethlas-helper" ~/.config/opencode/skills/rethlas-helper
 ln -s "$PWD/skills/archon-helper" ~/.config/opencode/skills/archon-helper
 ln -s "$PWD/skills/danus-helper" ~/.config/opencode/skills/danus-helper
 ```
+
+DeepSeek Harness uses `danus-helper-dsh`. See the
+[Danus installation guide](docs/danus-helper-setup.md) for the agent prompt,
+deployment flow, and saved-path check.
 
 ## Quick Start
 
@@ -140,13 +147,17 @@ conversations, start with:
 skills/archon-helper/SKILL.md
 ```
 
-For a persistent Danus installation that supports multi-agent research,
-scheduled monitoring, progress reports, and paper writing in OpenCode, start
-with:
+For a persistent Danus installation with multi-agent research, scheduled
+monitoring, progress reports, and paper writing in OpenCode or DeepSeek
+Harness, start with:
 
 ```text
 skills/danus-helper/SKILL.md
+skills/danus-helper-dsh/SKILL.md
 ```
+
+Both environments share the [Chinese installation guide](docs/danus-helper-setup.md)
+and [closed graph theorem example](docs/danus-closed-graph-example.md).
 
 For the course-contributed graph-theory and open-problem workflows, start with:
 
@@ -170,6 +181,7 @@ AI4Math-Auto-Research/
     ├── rethlas-helper/
     ├── archon-helper/
     ├── danus-helper/
+    ├── danus-helper-dsh/
     ├── graph-theory-researcher/
     ├── extremal-graph-problem-suggester/
     └── open-problem-research-pipeline/

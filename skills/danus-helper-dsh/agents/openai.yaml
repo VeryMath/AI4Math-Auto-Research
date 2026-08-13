@@ -1,0 +1,4 @@
+interface:
+  display_name: "Danus Helper for DeepSeek Harness"
+  short_description: "Install and run Danus with DeepSeek Harness"
+  default_prompt: "Use $danus-helper-dsh to install or locate Danus, apply the supported DeepSeek Harness adaptation, and handle my mathematics research request."
