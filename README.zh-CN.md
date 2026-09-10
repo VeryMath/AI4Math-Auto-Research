@@ -7,7 +7,7 @@
 [English](README.md) · [贡献者](CONTRIBUTORS.md) · [技能包](#技能包) · [安装](#安装) · [快速开始](#快速开始) · [参考资料](#相关公开参考资料) · [安全边界](#安全边界)
 
 ![version](https://img.shields.io/badge/version-0.1.0-blue)
-![skills](https://img.shields.io/badge/skills-10-2ea44f)
+![skills](https://img.shields.io/badge/skills-9-2ea44f)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
 </div>
@@ -28,14 +28,13 @@
 | 包 | 适用任务 | 入口 |
 | --- | --- | --- |
 | [`agent-laboratory-workflow`](skills/agent-laboratory-workflow/) | 部署、验证并启动有边界的 Agent Laboratory 自动研究运行。 | [`README`](skills/agent-laboratory-workflow/README.md) · [`SKILL`](skills/agent-laboratory-workflow/SKILL.md) |
-| [`discover-math-problems`](skills/discover-math-problems/) | 把模糊背景转为候选问题、猜想格、证据台账和后续工作单。 | [`README`](skills/discover-math-problems/README.md) · [`SKILL`](skills/discover-math-problems/SKILL.md) |
+| [`discover-math-problems`](skills/discover-math-problems/) | 把模糊背景转为候选问题、猜想格、证据台账和后续工作单，包含极值图论问题变体。 | [`README`](skills/discover-math-problems/README.md) · [`SKILL`](skills/discover-math-problems/SKILL.md) |
 | [`proof-blueprint-review`](skills/proof-blueprint-review/) | 生成证明蓝图、执行 verifier-style review、记录修复提示并给出严格证明状态。 | [`README`](skills/proof-blueprint-review/README.md) · [`SKILL`](skills/proof-blueprint-review/SKILL.md) |
 | [`rethlas-helper`](skills/rethlas-helper/) | 为 OpenCode 安装 Rethlas、记录本机路径，并从任意 OpenCode 项目运行自然语言证明生成。 | [`SKILL`](skills/rethlas-helper/SKILL.md) |
 | [`archon-helper`](skills/archon-helper/) | 为 OpenCode 安装 Archon、记录本机路径，并从任意 OpenCode 项目运行形式化工作流。 | [`SKILL`](skills/archon-helper/SKILL.md) |
 | [`danus-helper`](skills/danus-helper/) | 为 OpenCode 安装 Danus、记录本机路径，并运行多 agent 数学研究、定时检查、进展总结和论文写作。 | [`SKILL`](skills/danus-helper/SKILL.md) · [`安装介绍`](docs/danus-helper-setup.md) · [`使用例子`](docs/danus-closed-graph-example.md) |
 | [`danus-helper-dsh`](skills/danus-helper-dsh/) | 为 DeepSeek Harness 安装 Danus、记录本机路径，并运行同一套数学研究、验证、总结和论文流程。 | [`SKILL`](skills/danus-helper-dsh/SKILL.md) · [`安装介绍`](docs/danus-helper-setup.md) · [`使用例子`](docs/danus-closed-graph-example.md) |
 | [`graph-theory-researcher`](skills/graph-theory-researcher/) | 阅读图论论文，通过用户检查点选择问题，开展有边界研究并生成可核验 LaTeX/PDF。 | [`README`](skills/graph-theory-researcher/README.md) · [`SKILL`](skills/graph-theory-researcher/SKILL.md) |
-| [`extremal-graph-problem-suggester`](skills/extremal-graph-problem-suggester/) | 为极值图论问题生成“小改动”候选变体，并检查引用、新颖性与可行性边界。 | [`README`](skills/extremal-graph-problem-suggester/README.md) · [`SKILL`](skills/extremal-graph-problem-suggester/SKILL.md) |
 | [`open-problem-research-pipeline`](skills/open-problem-research-pipeline/) | 对数学公开问题执行文献搜索、方法分析、证明框架和报告组装的分阶段流程。 | [`README`](skills/open-problem-research-pipeline/README.md) · [`SKILL`](skills/open-problem-research-pipeline/SKILL.md) |
 
 ## 安装
@@ -56,7 +55,6 @@ Skill 路径：
 - skills/danus-helper
 - skills/danus-helper-dsh
 - skills/graph-theory-researcher
-- skills/extremal-graph-problem-suggester
 - skills/open-problem-research-pipeline
 
 请执行：
@@ -82,7 +80,6 @@ ln -s "$PWD/skills/archon-helper" ~/.codex/skills/archon-helper
 ln -s "$PWD/skills/danus-helper" ~/.codex/skills/danus-helper
 ln -s "$PWD/skills/danus-helper-dsh" ~/.codex/skills/danus-helper-dsh
 ln -s "$PWD/skills/graph-theory-researcher" ~/.codex/skills/graph-theory-researcher
-ln -s "$PWD/skills/extremal-graph-problem-suggester" ~/.codex/skills/extremal-graph-problem-suggester
 ln -s "$PWD/skills/open-problem-research-pipeline" ~/.codex/skills/open-problem-research-pipeline
 ```
 
@@ -155,9 +152,12 @@ skills/danus-helper-dsh/SKILL.md
 
 ```text
 skills/graph-theory-researcher/SKILL.md
-skills/extremal-graph-problem-suggester/SKILL.md
 skills/open-problem-research-pipeline/SKILL.md
 ```
+
+极值图论选题使用 `discover-math-problems` 及其
+[问题变体清单](skills/discover-math-problems/references/extremal-graph-variants.md)。
+[完整旧包已存档](archives/README.md)，保留贡献者记录和许可证。
 
 ## 仓库结构
 
@@ -166,6 +166,7 @@ AI4Math-Auto-Research/
 ├── README.md
 ├── README.zh-CN.md
 ├── SKILL.md
+├── archives/
 └── skills/
     ├── agent-laboratory-workflow/
     ├── discover-math-problems/
@@ -175,7 +176,6 @@ AI4Math-Auto-Research/
     ├── danus-helper/
     ├── danus-helper-dsh/
     ├── graph-theory-researcher/
-    ├── extremal-graph-problem-suggester/
     └── open-problem-research-pipeline/
 ```
 

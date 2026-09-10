@@ -1,6 +1,6 @@
 ---
 name: discover-math-problems
-description: "Use when Codex should act as a coding-agent-native mathematical problem discovery engine: turn fuzzy mathematical background, scattered notes, domain intuition, failed proof attempts, or immature theorem ideas into a ranked problem menu, conjecture lattice, evidence ledger, counterexample pressure, proof obligations, work orders, and a resumable research_state_packet. Use before theorem proving or formal verification when the user does not yet know which mathematical problem should be pursued."
+description: "Use when Codex should turn fuzzy mathematical background, scattered notes, domain intuition, failed proof attempts, immature theorem ideas, or extremal graph questions needing variants into ranked candidate problems, a conjecture lattice, evidence ledger, counterexample pressure, proof obligations, work orders, and a resumable research_state_packet. Use before theorem proving or formal verification when the user does not yet know which mathematical problem should be pursued."
 ---
 
 # Discover Math Problems
@@ -74,6 +74,10 @@ For detailed schemas and minimum fields, read
 
 ## Reference Routing
 
+- For Turán-type or extremal graph problem variants, read
+  `references/extremal-graph-variants.md` before generating the problem menu.
+  Use its variation checklist with this skill's existing literature checks
+  and candidate ranking; retain the user's requested scope and output length.
 - For the end-to-end autonomous research loop, read
   `references/autonomous-research-protocol.md`.
 - For conjecture lattice, toy model, novelty scan, and failure budget rules,

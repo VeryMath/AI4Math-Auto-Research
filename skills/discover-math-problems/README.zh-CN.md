@@ -13,6 +13,11 @@
 - 未成熟 theorem ideas，需要先做反例压力和假设边界检查；
 - 希望留下可恢复的 conjectures、evidence 和 uncertainty 记录。
 
+对于 Turán 型或其他极值图论选题，Agent 还会读取
+[极值图论问题变体清单](references/extremal-graph-variants.md)，尝试调整禁用子图、
+计数对象、优化量或图类，并在同一流程中核对文献和筛选可行方向。
+这份清单整理自董淼（Miao Dong）的课程贡献。
+
 ## 会产出什么
 
 Agent 应产出 ranked problem menu、conjecture lattice、evidence ledger、counterexample pressure notes、proof obligations、work orders 和 `research_state_packet`。

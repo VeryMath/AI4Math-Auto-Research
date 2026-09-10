@@ -16,7 +16,8 @@ scripts, and references.
 - `skills/agent-laboratory-workflow/`: deploy, configure, validate, and launch
   bounded Agent Laboratory auto-research runs.
 - `skills/discover-math-problems/`: convert fuzzy mathematical background into
-  ranked problems, conjecture lattices, proof obligations, and work orders.
+  ranked problems, conjecture lattices, proof obligations, and work orders,
+  including extremal graph problem variants.
 - `skills/proof-blueprint-review/`: coordinate agent-mediated proof
   generation, verifier-style review, repair hints, and proof acceptance reports.
 - `skills/rethlas-helper/`: install Rethlas for OpenCode, remember its local
@@ -30,8 +31,6 @@ scripts, and references.
   recovery, progress summaries, and paper writing.
 - `skills/graph-theory-researcher/`: stage graph-theory reading, question
   selection, bounded research, verification, and LaTeX/PDF delivery.
-- `skills/extremal-graph-problem-suggester/`: generate small-move candidate
-  variants for extremal graph problems with evidence-status checks.
 - `skills/open-problem-research-pipeline/`: route a literature-search,
   method-analysis, candidate proof-framework, and report workflow.
 

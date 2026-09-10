@@ -12,10 +12,6 @@ PACKAGES = {
         "Xiaowen Zhang",
         "5a264d4ecf916060d86c4aef32f9686f8c0b7c8e7b45defd69b413fe442aa289",
     ),
-    "extremal-graph-problem-suggester": (
-        "Miao Dong",
-        "bae6bb30111bb53853cdc39ec15a5c1b21f4e8b6cd61d4f5a7032c6f35e21fc9",
-    ),
     "open-problem-research-pipeline": (
         "Quan Sun",
         "9186e7ffc85a74423504e827c04d9649beb5714eba496e369dd2872b9f287f59",
@@ -89,20 +85,13 @@ class CourseSkillTests(unittest.TestCase):
             with self.subTest(template=template):
                 json.loads(template.read_text(encoding="utf-8"))
 
-    def test_pipeline_and_problem_suggester_state_evidence_boundaries(self) -> None:
+    def test_pipeline_and_problem_discovery_state_evidence_boundaries(self) -> None:
         pipeline = (ROOT / "skills/open-problem-research-pipeline/SKILL.md").read_text(encoding="utf-8")
-        suggester = (ROOT / "skills/extremal-graph-problem-suggester/SKILL.md").read_text(encoding="utf-8")
+        reference = (ROOT / "skills/discover-math-problems/references/extremal-graph-variants.md").read_text(encoding="utf-8")
         self.assertIn("proof obligation", pipeline)
         self.assertIn("Do not claim novelty", pipeline)
-        self.assertIn("unverified", suggester)
-        self.assertIn("不得声称问题是新的", suggester)
-
-    def test_extremal_graph_evals_are_well_formed(self) -> None:
-        path = ROOT / "skills/extremal-graph-problem-suggester/evals/evals.json"
-        payload = json.loads(path.read_text(encoding="utf-8"))
-        self.assertEqual("extremal-graph-problem-suggester", payload["skill_name"])
-        self.assertEqual(3, len(payload["evals"]))
-        self.assertEqual({1, 2, 3}, {case["id"] for case in payload["evals"]})
+        self.assertIn("unverified", reference)
+        self.assertIn("不得声称问题是新的", reference)
 
 
 if __name__ == "__main__":

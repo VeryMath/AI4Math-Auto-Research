@@ -1,4 +1,0 @@
-interface:
-  display_name: "Extremal Graph Problem Suggester"
-  short_description: "Suggest evidence-checked variants of extremal graph problems"
-  default_prompt: "Use $extremal-graph-problem-suggester to propose two evidence-labeled variants of this extremal graph problem."

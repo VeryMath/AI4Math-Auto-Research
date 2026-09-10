@@ -13,6 +13,12 @@ Use this skill when you have:
 - immature theorem ideas that need counterexample pressure before proof work;
 - a need for a resumable record of conjectures, evidence, and uncertainty.
 
+For Turán-type or other extremal graph questions, the agent also uses the
+[extremal graph variation checklist](references/extremal-graph-variants.md).
+It covers changes to forbidden subgraphs, counted structures, objectives,
+and graph classes, with literature and feasibility checks in this same workflow.
+The checklist incorporates Miao Dong's course contribution.
+
 ## What It Produces
 
 The agent should produce ranked problem menus, conjecture lattices, evidence ledgers, counterexample pressure notes, proof obligations, work orders, and a `research_state_packet`.
@@ -32,6 +38,7 @@ Core files:
 - `references/autonomous-research-protocol.md`: end-to-end discovery loop.
 - `references/conjecture-generation-protocol.md`: conjecture lattice and stress testing.
 - `references/artifact-contract.md`: artifact names, fields, and status labels.
+- `references/extremal-graph-variants.md`: candidate variations for extremal graph problems.
 
 ## Installation
 

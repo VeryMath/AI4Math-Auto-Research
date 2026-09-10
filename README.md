@@ -8,7 +8,7 @@ orchestration, and proof-blueprint review.
 [中文说明](README.zh-CN.md) · [Contributors](CONTRIBUTORS.md) · [Skill packages](#skill-packages) · [Installation](#installation) · [Quick start](#quick-start) · [References](#related-public-references) · [Security model](#security-and-scope)
 
 ![version](https://img.shields.io/badge/version-0.1.0-blue)
-![skills](https://img.shields.io/badge/skills-10-2ea44f)
+![skills](https://img.shields.io/badge/skills-9-2ea44f)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
 </div>
@@ -32,14 +32,13 @@ the task and follow its package-local instructions.
 | Package | Use it for | Start here |
 | --- | --- | --- |
 | [`agent-laboratory-workflow`](skills/agent-laboratory-workflow/) | Deploy, validate, and launch bounded Agent Laboratory auto-research runs. | [`README`](skills/agent-laboratory-workflow/README.md) · [`SKILL`](skills/agent-laboratory-workflow/SKILL.md) |
-| [`discover-math-problems`](skills/discover-math-problems/) | Convert fuzzy background into ranked problems, conjecture lattices, evidence ledgers, and work orders. | [`README`](skills/discover-math-problems/README.md) · [`SKILL`](skills/discover-math-problems/SKILL.md) |
+| [`discover-math-problems`](skills/discover-math-problems/) | Convert fuzzy background into ranked problems, conjecture lattices, evidence ledgers, and work orders, including extremal graph variants. | [`README`](skills/discover-math-problems/README.md) · [`SKILL`](skills/discover-math-problems/SKILL.md) |
 | [`proof-blueprint-review`](skills/proof-blueprint-review/) | Build proof blueprints, run verifier-style reviews, record repair hints, and issue strict proof-status reports. | [`README`](skills/proof-blueprint-review/README.md) · [`SKILL`](skills/proof-blueprint-review/SKILL.md) |
 | [`rethlas-helper`](skills/rethlas-helper/) | Install Rethlas for OpenCode, remember its local path, and run natural-language proof generation from any OpenCode project. | [`SKILL`](skills/rethlas-helper/SKILL.md) |
 | [`archon-helper`](skills/archon-helper/) | Install Archon for OpenCode, remember its local path, and run formalization workflows from any OpenCode project. | [`SKILL`](skills/archon-helper/SKILL.md) |
 | [`danus-helper`](skills/danus-helper/) | Install the OpenCode adaptation of Danus, remember its local path, and run multi-agent mathematics research, monitoring, summaries, and paper writing. | [`SKILL`](skills/danus-helper/SKILL.md) · [`中文安装`](docs/danus-helper-setup.md) · [`中文示例`](docs/danus-closed-graph-example.md) |
 | [`danus-helper-dsh`](skills/danus-helper-dsh/) | Install the DeepSeek Harness adaptation of Danus, remember its local path, and run the same research, verification, summary, and paper workflows. | [`SKILL`](skills/danus-helper-dsh/SKILL.md) · [`中文安装`](docs/danus-helper-setup.md) · [`中文示例`](docs/danus-closed-graph-example.md) |
 | [`graph-theory-researcher`](skills/graph-theory-researcher/) | Read graph-theory papers, select questions through user gates, run bounded research, and prepare verified LaTeX/PDF artifacts. | [`README`](skills/graph-theory-researcher/README.md) · [`SKILL`](skills/graph-theory-researcher/SKILL.md) |
-| [`extremal-graph-problem-suggester`](skills/extremal-graph-problem-suggester/) | Generate small-move candidate variants for extremal graph problems with citation, novelty, and feasibility checks. | [`README`](skills/extremal-graph-problem-suggester/README.md) · [`SKILL`](skills/extremal-graph-problem-suggester/SKILL.md) |
 | [`open-problem-research-pipeline`](skills/open-problem-research-pipeline/) | Run a staged literature-search, method-analysis, proof-framework, and report workflow for open mathematical problems. | [`README`](skills/open-problem-research-pipeline/README.md) · [`SKILL`](skills/open-problem-research-pipeline/SKILL.md) |
 
 ## Installation
@@ -60,7 +59,6 @@ Skill paths:
 - skills/danus-helper
 - skills/danus-helper-dsh
 - skills/graph-theory-researcher
-- skills/extremal-graph-problem-suggester
 - skills/open-problem-research-pipeline
 
 Steps:
@@ -86,7 +84,6 @@ ln -s "$PWD/skills/archon-helper" ~/.codex/skills/archon-helper
 ln -s "$PWD/skills/danus-helper" ~/.codex/skills/danus-helper
 ln -s "$PWD/skills/danus-helper-dsh" ~/.codex/skills/danus-helper-dsh
 ln -s "$PWD/skills/graph-theory-researcher" ~/.codex/skills/graph-theory-researcher
-ln -s "$PWD/skills/extremal-graph-problem-suggester" ~/.codex/skills/extremal-graph-problem-suggester
 ln -s "$PWD/skills/open-problem-research-pipeline" ~/.codex/skills/open-problem-research-pipeline
 ```
 
@@ -163,9 +160,13 @@ For the course-contributed graph-theory and open-problem workflows, start with:
 
 ```text
 skills/graph-theory-researcher/SKILL.md
-skills/extremal-graph-problem-suggester/SKILL.md
 skills/open-problem-research-pipeline/SKILL.md
 ```
+
+For extremal graph problem variants, use `discover-math-problems` and its
+[variation checklist](skills/discover-math-problems/references/extremal-graph-variants.md).
+The [complete original package is archived](archives/README.md), with its
+contributor record and license.
 
 ## Repository Layout
 
@@ -174,6 +175,7 @@ AI4Math-Auto-Research/
 ├── README.md
 ├── README.zh-CN.md
 ├── SKILL.md
+├── archives/
 └── skills/
     ├── agent-laboratory-workflow/
     ├── discover-math-problems/
@@ -183,7 +185,6 @@ AI4Math-Auto-Research/
     ├── danus-helper/
     ├── danus-helper-dsh/
     ├── graph-theory-researcher/
-    ├── extremal-graph-problem-suggester/
     └── open-problem-research-pipeline/
 ```
 
