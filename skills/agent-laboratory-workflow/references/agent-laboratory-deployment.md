@@ -25,7 +25,8 @@ Agent Laboratory is the current primary AI4Math Auto-Research platform. The upst
 - This keeps the environment as conda while using uv only as the package installer when pip/network stalls.
 - Always run local validation before a real experiment.
 - Never commit API keys, experiment credentials, generated state saves, or large outputs.
-- Run real experiments only after `OPENAI_API_KEY` or another supported provider key is present.
+- The helper's model-backed modes (`hybrid`, `core`, `research`, and `full`) require `OPENAI_API_KEY` or its `LLM_API_KEY` alias. The helper maps `LLM_API_KEY` to `OPENAI_API_KEY` before execution.
+- `codex-native` uses the active coding agent without an additional model API key.
 
 ## Real Experiment Definition
 
@@ -43,7 +44,7 @@ For AI4Math, a real test means:
 
 ## Human Interaction Points
 
-- Before real experiment: if `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`, and `S2_API_KEY` are all missing, pause and ask the user to provide one.
+- Before a model-backed experiment or core smoke: if both `OPENAI_API_KEY` and `LLM_API_KEY` are missing, pause and ask the user to provide one through hidden input or the process environment. Configure any additional tool credentials for the services that use them.
 - Before code execution: confirm the target experiment YAML and backend.
 - After experiment: show logs and generated artifacts before reusing results.
 

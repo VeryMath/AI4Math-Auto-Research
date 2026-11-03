@@ -116,10 +116,10 @@ description: 最终的组合大skill。对用户输入的数学公开问题，�
 
 ### Phase 5：输出 PDF 并保存
 
-1. 使用 `python3 <package-root>/skills/qskill/md2pdf.py <md文件路径>` 将 Markdown 报告转换为 PDF
-2. 该脚本使用 pdflatex（需系统预装）编译，需 ctex 宏包（TeX Live 中文支持）
-3. 如果 pdflatex 不可用，回退到仅保存 Markdown 源文件
-4. 保存到 `outputs/qs_reports/`
+1. 先将 Markdown 报告保存到 `outputs/qs_reports/`，再运行 `python3 <package-root>/skills/qskill/md2pdf.py <md文件路径> outputs/qs_reports` 生成 PDF。
+2. 该脚本需要系统安装 Pandoc 和 XeLaTeX，并使用 `--pdf-engine=xelatex` 编译。
+3. 需要指定中文字体时，设置 `AI4MATH_CJK_FONT`，或在命令末尾添加 `--cjk-font "<已安装的中文字体名称>"`。
+4. 缺少 Pandoc、XeLaTeX，或 PDF 生成失败时，保留 Markdown 源文件，并报告命令的非零退出状态与错误信息。
 
 **文件命名**：
 ```
