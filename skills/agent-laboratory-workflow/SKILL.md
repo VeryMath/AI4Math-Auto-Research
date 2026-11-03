@@ -15,11 +15,14 @@ Do not use this skill for generic literature QA; use PaperQA2 or the paper-to-sk
 
 - Target deployment directory, default `external/agent-laboratory`.
 - Conda environment name, default `ai4math-agent-lab`.
-- API keys such as `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `S2_API_KEY`.
-- OpenAI-compatible aliases such as `LLM_API_KEY`, `LLM_BASE_URL`, and `LLM_MODEL_ID`.
+- `OPENAI_API_KEY` or its `LLM_API_KEY` alias for the model-backed modes `hybrid`, `core`, `research`, and `full`.
+- OpenAI-compatible endpoint and model aliases `LLM_BASE_URL` and `LLM_MODEL_ID`.
+- Additional credentials required by upstream tools, when used.
 - User research topic.
 - Run mode: `hybrid`, `core`, `research`, `codex-native`, or `full`.
 - Experiment YAML path; research mode defaults to `templates/interactive-auto-research.yaml`.
+
+`codex-native` uses the active coding agent without an additional model API key.
 
 ## Outputs
 
@@ -214,7 +217,7 @@ Then Codex must complete the unfinished phases in that workspace: fill `plan.md`
 - If the target directory is missing, run `--deploy`.
 - If conda metadata or package downloads fail, retry with `--conda-mirror tuna`; if pip stalls or hits `IncompleteRead`, rerun deploy with `--installer uv`.
 - If conda is unavailable, use `--env-manager uv` as a fallback and record the reason.
-- If API keys are missing, pause and ask the user; do not invent or hard-code secrets.
+- If both `OPENAI_API_KEY` and `LLM_API_KEY` are missing in a model-backed mode, pause and ask the user; do not invent or hard-code secrets.
 - If a custom model name is not recognized, rerun `--deploy`; the deployment applies the `AI4MATH_OPENAI_COMPATIBLE_PATCH` to Agent Laboratory's model router.
 - If LaTeX is unavailable or fails, run with `--compile-latex false`.
 - If startup hangs on heavyweight optional imports, rerun smoke with `--lightweight-imports`; full experiments can still use the original upstream import set.
@@ -229,7 +232,7 @@ Then Codex must complete the unfinished phases in that workspace: fill `plan.md`
 The coding agent should ask the user only for values it cannot infer safely:
 
 - Research topic or research direction.
-- API key, hidden input only.
+- API key for a model-backed mode, hidden input only.
 - Whether to run `core`, `research`, or `full`.
 - Whether to continue if verification passes but full workflow is likely to be slow or costly.
 
